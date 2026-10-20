@@ -1,0 +1,631 @@
+// PCI-Orbit data model.
+// Structured JSON columns are used only for small, ordered lists that are edited
+// as a unit (key facts, payment plan steps, page sections, …). They are always
+// validated with the Zod schemas in src/lib/validation before being written.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────── Users & security ───────────────────────────────
+
+enum Role {
+  ADMIN
+  EDITOR
+  AUTHOR
+  SALES_APPROVER
+  VIEWER
+}
+
+model User {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  name             String
+  passwordHash     String
+  role             Role      @default(AUTHOR)
+  isActive         Boolean   @default(true)
+  failedLoginCount Int       @default(0)
+  lockedUntil      DateTime?
+  lastLoginAt      DateTime?
+  passwordChangedAt DateTime @default(now())
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  sessions          Session[]
+  auditLogs         AuditLog[]
+  pagesAuthored     Page[]          @relation("PageAuthor")
+  pagesEdited       Page[]          @relation("PageEditor")
+  pageRevisions     PageRevision[]
+  projectsAuthored  Project[]       @relation("ProjectAuthor")
+  projectsEdited    Project[]       @relation("ProjectEditor")
+  projectsApproved  Project[]       @relation("ProjectCommercialApprover")
+  articles          Article[]
+  updatesAuthored   ProjectUpdate[]
+  mediaUploaded     Media[]
+  themeUpdates      ThemeSettings[]
+
+  @@index([role])
+}
+
+model Session {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  revokedAt DateTime?
+  ipAddress String?
+  userAgent String?
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String
+  entityId   String?
+  summary    String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@index([actorId])
+}
+
+model RateLimitBucket {
+  key       String   @id
+  count     Int
+  resetAt   DateTime
+
+  @@index([resetAt])
+}
+
+// ─────────────────────────────── Media library ───────────────────────────────
+
+enum MediaKind {
+  IMAGE
+  DOCUMENT
+}
+
+model Media {
+  id           String    @id @default(cuid())
+  kind         MediaKind
+  storageKey   String    @unique
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  width        Int?
+  height       Int?
+  alt          String    @default("")
+  title        String    @default("")
+  tags         String[]  @default([])
+  uploadedById String?
+  uploadedBy   User?     @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  pagesFeatured     Page[]               @relation("PageFeaturedImage")
+  pagesOg           Page[]               @relation("PageOgImage")
+  projectsHero      Project[]            @relation("ProjectHeroImage")
+  projectsCard      Project[]            @relation("ProjectCardImage")
+  projectsDldQr     Project[]            @relation("ProjectDldQr")
+  galleryItems      ProjectGalleryItem[]
+  floorPlansImage   FloorPlan[]          @relation("FloorPlanImage")
+  floorPlansFile    FloorPlan[]          @relation("FloorPlanDocument")
+  documents         ProjectDocument[]
+  vrThumbnails      VrTour[]
+  updateImages      ProjectUpdateImage[]
+  locationsHero     Location[]
+  articlesCover     Article[]
+
+  @@index([kind, createdAt])
+}
+
+// ─────────────────────────────── Publishing ───────────────────────────────
+
+enum PublishStatus {
+  DRAFT
+  IN_REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+model Page {
+  id              String        @id @default(cuid())
+  title           String
+  slug            String        @unique
+  status          PublishStatus @default(DRAFT)
+  sections        Json          @default("[]")
+  excerpt         String        @default("")
+  featuredImageId String?
+  featuredImage   Media?        @relation("PageFeaturedImage", fields: [featuredImageId], references: [id], onDelete: SetNull)
+  seoTitle        String        @default("")
+  seoDescription  String        @default("")
+  ogImageId       String?
+  ogImage         Media?        @relation("PageOgImage", fields: [ogImageId], references: [id], onDelete: SetNull)
+  canonicalUrl    String        @default("")
+  noindex         Boolean       @default(false)
+  authorId        String?
+  author          User?         @relation("PageAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  updatedById     String?
+  updatedBy       User?         @relation("PageEditor", fields: [updatedById], references: [id], onDelete: SetNull)
+  publishedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  revisions PageRevision[]
+
+  @@index([status, publishedAt])
+  @@index([updatedAt])
+}
+
+model PageRevision {
+  id          String   @id @default(cuid())
+  pageId      String
+  page        Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  title       String
+  snapshot    Json
+  note        String   @default("")
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+
+  @@index([pageId, createdAt])
+}
+
+model Menu {
+  id    String     @id @default(cuid())
+  key   String     @unique
+  name  String
+  items MenuItem[]
+}
+
+model MenuItem {
+  id           String     @id @default(cuid())
+  menuId       String
+  menu         Menu       @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  parentId     String?
+  parent       MenuItem?  @relation("MenuItemChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children     MenuItem[] @relation("MenuItemChildren")
+  label        String
+  href         String
+  order        Int        @default(0)
+  openInNewTab Boolean    @default(false)
+
+  @@index([menuId, parentId, order])
+}
+
+model Redirect {
+  id        String   @id @default(cuid())
+  fromPath  String   @unique
+  toPath    String
+  permanent Boolean  @default(true)
+  hits      Int      @default(0)
+  note      String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SiteSettings {
+  id        String   @id @default("default")
+  data      Json
+  updatedAt DateTime @updatedAt
+}
+
+model ThemeSettings {
+  id          String   @id @default("default")
+  tokens      Json
+  updatedById String?
+  updatedBy   User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedAt   DateTime @updatedAt
+}
+
+// ─────────────────────────────── Real estate content ───────────────────────────────
+
+enum ProjectCategory {
+  RESIDENTIAL
+  COMMERCIAL
+  MIXED_USE
+  CO_LIVING
+  RETAIL
+  HOSPITALITY
+}
+
+enum ConstructionStatus {
+  UPCOMING
+  ONGOING
+  COMPLETED
+}
+
+enum Currency {
+  AED
+  PKR
+  USD
+  CAD
+}
+
+enum ApprovalStatus {
+  NOT_SUBMITTED
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum Market {
+  UAE
+  PAKISTAN
+  CANADA
+  USA
+}
+
+model Location {
+  id             String        @id @default(cuid())
+  name           String
+  slug           String        @unique
+  market         Market
+  city           String
+  summary        String        @default("")
+  overview       String        @default("")
+  heroImageId    String?
+  heroImage      Media?        @relation(fields: [heroImageId], references: [id], onDelete: SetNull)
+  latitude       Float?
+  longitude      Float?
+  landmarks      Json          @default("[]")
+  status         PublishStatus @default(DRAFT)
+  seoTitle       String        @default("")
+  seoDescription String        @default("")
+  publishedAt    DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  projects Project[]
+
+  @@index([status])
+}
+
+model Project {
+  id                 String             @id @default(cuid())
+  name               String
+  slug               String             @unique
+  status             PublishStatus      @default(DRAFT)
+  category           ProjectCategory
+  constructionStatus ConstructionStatus
+  market             Market
+  city               String
+  address            String             @default("")
+  locationId         String?
+  location           Location?          @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  latitude           Float?
+  longitude          Float?
+  tagline            String             @default("")
+  overview           String             @default("")
+  heroImageId        String?
+  heroImage          Media?             @relation("ProjectHeroImage", fields: [heroImageId], references: [id], onDelete: SetNull)
+  cardImageId        String?
+  cardImage          Media?             @relation("ProjectCardImage", fields: [cardImageId], references: [id], onDelete: SetNull)
+  heroYoutubeId      String             @default("")
+  keyFacts           Json               @default("[]")
+  unitTypes          Json               @default("[]")
+  amenities          Json               @default("[]")
+  videos             Json               @default("[]")
+  connectivity       Json               @default("[]")
+  isFeatured         Boolean            @default(false)
+  sortOrder          Int                @default(0)
+
+  // Commercial fields: marketing content that must be approved and dated.
+  priceFrom              Float?
+  currency               Currency?
+  handover               String             @default("")
+  paymentPlanSummary     String             @default("")
+  paymentPlan            Json               @default("[]")
+  showPrice              Boolean            @default(true)
+  showPaymentPlan        Boolean            @default(true)
+  showHandover           Boolean            @default(true)
+  commercialStatus       ApprovalStatus     @default(NOT_SUBMITTED)
+  commercialAsOf         DateTime?
+  commercialApprovedById String?
+  commercialApprovedBy   User?              @relation("ProjectCommercialApprover", fields: [commercialApprovedById], references: [id], onDelete: SetNull)
+  commercialApprovedAt   DateTime?
+  commercialNote         String             @default("")
+
+  // Regulatory / compliance display fields.
+  dldPermitNumber     String  @default("")
+  dldQrImageId        String?
+  dldQrImage          Media?  @relation("ProjectDldQr", fields: [dldQrImageId], references: [id], onDelete: SetNull)
+  regulatoryApprovals String  @default("")
+
+  bitrixProjectId String @default("")
+
+  seoTitle       String  @default("")
+  seoDescription String  @default("")
+  noindex        Boolean @default(false)
+
+  authorId    String?
+  author      User?     @relation("ProjectAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  updatedById String?
+  updatedBy   User?     @relation("ProjectEditor", fields: [updatedById], references: [id], onDelete: SetNull)
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  gallery    ProjectGalleryItem[]
+  floorPlans FloorPlan[]
+  documents  ProjectDocument[]
+  vrTours    VrTour[]
+  updates    ProjectUpdate[]
+  leads      Lead[]
+  related    Project[]            @relation("RelatedProjects")
+  relatedBy  Project[]            @relation("RelatedProjects")
+
+  @@index([status, publishedAt])
+  @@index([category, constructionStatus])
+  @@index([isFeatured, sortOrder])
+  @@index([locationId])
+}
+
+model ProjectGalleryItem {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  mediaId   String
+  media     Media   @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  caption   String  @default("")
+  order     Int     @default(0)
+
+  @@index([projectId, order])
+}
+
+model FloorPlan {
+  id         String  @id @default(cuid())
+  projectId  String
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title      String
+  unitType   String  @default("")
+  size       String  @default("")
+  imageId    String?
+  image      Media?  @relation("FloorPlanImage", fields: [imageId], references: [id], onDelete: SetNull)
+  documentId String?
+  document   Media?  @relation("FloorPlanDocument", fields: [documentId], references: [id], onDelete: SetNull)
+  gated      Boolean @default(false)
+  order      Int     @default(0)
+
+  @@index([projectId, order])
+}
+
+enum DocumentKind {
+  BROCHURE
+  FACT_SHEET
+  PAYMENT_PLAN
+  OTHER
+}
+
+model ProjectDocument {
+  id        String       @id @default(cuid())
+  projectId String
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  mediaId   String
+  media     Media        @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  title     String
+  kind      DocumentKind @default(BROCHURE)
+  gated     Boolean      @default(false)
+  order     Int          @default(0)
+
+  @@index([projectId, order])
+}
+
+model VrTour {
+  id          String  @id @default(cuid())
+  projectId   String
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title       String
+  provider    String  @default("")
+  embedUrl    String
+  unitType    String  @default("")
+  thumbnailId String?
+  thumbnail   Media?  @relation(fields: [thumbnailId], references: [id], onDelete: SetNull)
+  isActive    Boolean @default(true)
+  order       Int     @default(0)
+
+  @@index([projectId, isActive, order])
+}
+
+model ProjectUpdate {
+  id              String        @id @default(cuid())
+  projectId       String
+  project         Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title           String
+  slug            String        @unique
+  date            DateTime
+  summary         String        @default("")
+  body            String        @default("")
+  progressPercent Int?
+  milestone       String        @default("")
+  youtubeId       String        @default("")
+  status          PublishStatus @default(DRAFT)
+  publishedAt     DateTime?
+  authorId        String?
+  author          User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  images ProjectUpdateImage[]
+
+  @@index([projectId, date])
+  @@index([status, publishedAt, date])
+}
+
+model ProjectUpdateImage {
+  id       String        @id @default(cuid())
+  updateId String
+  update   ProjectUpdate @relation(fields: [updateId], references: [id], onDelete: Cascade)
+  mediaId  String
+  media    Media         @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  caption  String        @default("")
+  order    Int           @default(0)
+
+  @@index([updateId, order])
+}
+
+enum ArticleCategory {
+  NEWS
+  PRESS_RELEASE
+  EVENT
+  BLOG
+}
+
+model Article {
+  id             String          @id @default(cuid())
+  title          String
+  slug           String          @unique
+  category       ArticleCategory @default(NEWS)
+  excerpt        String          @default("")
+  body           String          @default("")
+  coverImageId   String?
+  coverImage     Media?          @relation(fields: [coverImageId], references: [id], onDelete: SetNull)
+  youtubeId      String          @default("")
+  eventDate      DateTime?
+  eventLocation  String          @default("")
+  status         PublishStatus   @default(DRAFT)
+  seoTitle       String          @default("")
+  seoDescription String          @default("")
+  publishedAt    DateTime?
+  authorId       String?
+  author         User?           @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([status, publishedAt])
+  @@index([category, publishedAt])
+}
+
+model Vacancy {
+  id             String        @id @default(cuid())
+  title          String
+  slug           String        @unique
+  department     String        @default("")
+  location       String        @default("")
+  employmentType String        @default("Full-time")
+  summary        String        @default("")
+  description    String        @default("")
+  closesAt       DateTime?
+  status         PublishStatus @default(DRAFT)
+  publishedAt    DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  applications JobApplication[]
+
+  @@index([status, publishedAt])
+}
+
+model JobApplication {
+  id          String   @id @default(cuid())
+  vacancyId   String?
+  vacancy     Vacancy? @relation(fields: [vacancyId], references: [id], onDelete: SetNull)
+  name        String
+  email       String
+  phone       String
+  coverLetter String   @default("")
+  cvKey       String
+  cvName      String
+  consent     Boolean
+  createdAt   DateTime @default(now())
+
+  @@index([vacancyId, createdAt])
+}
+
+model Faq {
+  id          String  @id @default(cuid())
+  question    String
+  answer      String
+  category    String  @default("general")
+  order       Int     @default(0)
+  isPublished Boolean @default(true)
+
+  @@index([category, order])
+}
+
+// ─────────────────────────────── Leads & CRM delivery ───────────────────────────────
+
+enum LeadFormType {
+  CONTACT
+  PROJECT_ENQUIRY
+  BROCHURE_REQUEST
+  CHANNEL_PARTNER
+  INVESTOR
+  PAYMENT_REQUEST
+  CHATBOT
+}
+
+enum CrmStatus {
+  PENDING
+  DELIVERED
+  FAILED
+  NOT_CONFIGURED
+}
+
+model Lead {
+  id            String       @id @default(cuid())
+  correlationId String       @unique
+  formType      LeadFormType
+  name          String
+  email         String
+  phone         String
+  country       String       @default("")
+  message       String       @default("")
+  projectId     String?
+  project       Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  projectName   String       @default("")
+  pageUrl       String       @default("")
+  referrer      String       @default("")
+  landingPage   String       @default("")
+  utmSource     String       @default("")
+  utmMedium     String       @default("")
+  utmCampaign   String       @default("")
+  utmContent    String       @default("")
+  utmTerm       String       @default("")
+  gclid         String       @default("")
+  fbclid        String       @default("")
+  extra         Json         @default("{}")
+  consent       Boolean
+  consentText   String
+  userAgent     String       @default("")
+
+  crmStatus        CrmStatus @default(PENDING)
+  crmLeadId        String    @default("")
+  crmAttempts      Int       @default(0)
+  crmLastError     String    @default("")
+  crmNextAttemptAt DateTime?
+  crmDeliveredAt   DateTime?
+  createdAt        DateTime  @default(now())
+
+  attempts CrmDeliveryAttempt[]
+
+  @@index([crmStatus, crmNextAttemptAt])
+  @@index([formType, createdAt])
+  @@index([createdAt])
+}
+
+model CrmDeliveryAttempt {
+  id         String   @id @default(cuid())
+  leadId     String
+  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  attemptNo  Int
+  success    Boolean
+  httpStatus Int?
+  error      String   @default("")
+  durationMs Int
+  createdAt  DateTime @default(now())
+
+  @@index([leadId, attemptNo])
+}
