@@ -43,8 +43,8 @@ async function Articles({ searchParams }: { searchParams: SP }) {
     <section className="section-y">
       <div className="container-site">
         <nav aria-label="Media categories" className="mb-12 flex flex-wrap gap-2">
-          <Link href="/media" className={chip(!category)}>All</Link>
-          {ARTICLE_CATEGORIES.map((c) => <Link key={c} href={href(c)} className={chip(category === c)}>{ARTICLE_CATEGORY_LABELS[c]}</Link>)}
+          <Link scroll={false} href="/media" className={chip(!category)}>All</Link>
+          {ARTICLE_CATEGORIES.map((c) => <Link scroll={false} key={c} href={href(c)} className={chip(category === c)}>{ARTICLE_CATEGORY_LABELS[c]}</Link>)}
         </nav>
         {items.length ? (
           <div className="grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">{items.map((a) => <ArticleCard key={a.id} article={a} />)}</div>

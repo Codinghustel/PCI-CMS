@@ -1,12 +1,11 @@
 import crypto from "node:crypto";
-import { deliverDueLeads } from "@/server/services/leads";
-import { purgeExpiredRateLimits } from "@/server/services/rate-limit";
-import { purgeExpiredSessions } from "@/server/services/auth";
+import { runLeadDeliveryJob } from "@/server/services/integrations";
 import { serverEnv } from "@/lib/env";
 
 /**
  * POST /api/cron/deliver-leads — scheduled job (run every 1–5 minutes from the
- * host's scheduler). Retries due CRM deliveries and performs housekeeping.
+ * host's scheduler). Retries due CRM deliveries and performs housekeeping; each
+ * run is recorded and shown in Settings → Integrations.
  * Auth: "Authorization: Bearer <CRON_SECRET>".
  */
 export async function POST(request: Request) {
@@ -18,7 +17,6 @@ export async function POST(request: Request) {
     crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(secret));
   if (!ok) return Response.json({ error: { code: "UNAUTHORIZED" }, message: "Unauthorized" }, { status: 401 });
 
-  const result = await deliverDueLeads(50);
-  await Promise.all([purgeExpiredRateLimits(), purgeExpiredSessions()]);
+  const result = await runLeadDeliveryJob("schedule");
   return Response.json(result);
 }

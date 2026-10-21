@@ -83,10 +83,17 @@ function Hero({ data, ctx, first }: SectionProps) {
           loading="lazy"
         />
       ) : null}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-black/20" />
+      {/* Overlay keeps hero text readable on bright photography (WCAG contrast). */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/25" />
+      <div className="absolute inset-y-0 start-0 w-full bg-gradient-to-r from-black/45 to-transparent md:w-2/3 rtl:bg-gradient-to-l" />
       <div className="container-site relative pt-32 pb-20 md:pb-28">
-        <div className="max-w-3xl">
-          {data.eyebrow ? <p className="eyebrow mb-5">{data.eyebrow}</p> : null}
+        <div className="max-w-3xl [text-shadow:0_1px_12px_rgba(0,0,0,0.35)]">
+          {data.eyebrow ? (
+            <p className="mb-5 flex items-center gap-3 text-xs font-semibold tracking-[0.28em] text-white uppercase">
+              <span aria-hidden className="h-px w-10 bg-accent" />
+              {data.eyebrow}
+            </p>
+          ) : null}
           <Heading className="text-5xl text-balance text-white md:text-7xl">{data.heading}</Heading>
           {data.subheading ? <p className="mt-6 max-w-xl text-lg text-white/85 md:text-xl">{data.subheading}</p> : null}
           <div className="mt-10 flex flex-wrap gap-3">
@@ -182,12 +189,12 @@ function FeatureGrid({ data, ctx }: SectionProps) {
                 ) : (
                   <span className="mb-6 block font-heading text-4xl text-accent">{String(i + 1).padStart(2, "0")}</span>
                 )}
-                <h3 className="text-2xl">{item.title}</h3>
-                {item.description ? <p className="mt-3 text-sm leading-relaxed opacity-80">{item.description}</p> : null}
+                <h3 className="line-clamp-2 text-2xl">{item.title}</h3>
+                {item.description ? <p className="mt-3 line-clamp-5 text-sm leading-relaxed opacity-80">{item.description}</p> : null}
               </>
             );
             return (
-              <li key={i} className={cn("group border border-border p-6", data.background === "dark" && "border-white/15")}>
+              <li key={i} className={cn("group h-full border border-border p-6", data.background === "dark" && "border-white/15")}>
                 {href(item.href) ? <Link href={href(item.href)} className="block">{content}</Link> : content}
               </li>
             );
@@ -474,7 +481,7 @@ async function LocationsGrid({ data }: SectionProps) {
                 <span className="absolute inset-0 bg-gradient-to-t from-black/75 to-transparent" />
                 <span className="relative">
                   <span className="eyebrow block">{l.city}</span>
-                  <span className="heading mt-1 block text-3xl">{l.name}</span>
+                  <span className="heading mt-1 line-clamp-2 text-3xl">{l.name}</span>
                   <span className="mt-1 block text-sm opacity-80">{l.projectCount} project{l.projectCount === 1 ? "" : "s"}</span>
                 </span>
               </Link>

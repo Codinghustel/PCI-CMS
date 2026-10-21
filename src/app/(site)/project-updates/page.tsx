@@ -54,13 +54,13 @@ async function UpdatesList({ searchParams }: { searchParams: SP }) {
       <div className="container-site">
         <nav aria-label="Filter updates" className="mb-10 space-y-3">
           <div className="flex flex-wrap gap-2">
-            <Link href={href({ year })} className={chip(!project)}>All projects</Link>
-            {projects.map((p) => <Link key={p.slug} href={href({ project: p.slug, year })} className={chip(project === p.slug)}>{p.name}</Link>)}
+            <Link scroll={false} href={href({ year })} className={chip(!project)}>All projects</Link>
+            {projects.map((p) => <Link scroll={false} key={p.slug} href={href({ project: p.slug, year })} className={chip(project === p.slug)}>{p.name}</Link>)}
           </div>
           {years.length > 1 ? (
             <div className="flex flex-wrap gap-2">
-              <Link href={href({ project })} className={chip(!year)}>Any year</Link>
-              {years.map((y) => <Link key={y} href={href({ project, year: y })} className={chip(year === y)}>{y}</Link>)}
+              <Link scroll={false} href={href({ project })} className={chip(!year)}>Any year</Link>
+              {years.map((y) => <Link scroll={false} key={y} href={href({ project, year: y })} className={chip(year === y)}>{y}</Link>)}
             </div>
           ) : null}
         </nav>

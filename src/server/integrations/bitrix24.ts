@@ -15,6 +15,7 @@ export interface BitrixConfig {
   webhookUrl: string;
   projectField?: string; // custom field code (e.g. UF_CRM_PROJECT) for the project id
   defaultAssigneeId?: string;
+  sourceDescription?: string; // e.g. "Website"
 }
 
 export interface LeadForCrm {
@@ -43,7 +44,7 @@ export interface LeadForCrm {
 }
 
 /** Builds the crm.lead.add `fields` object. Pure function — unit tested. */
-export function buildLeadFields(lead: LeadForCrm, config: Pick<BitrixConfig, "projectField" | "defaultAssigneeId">) {
+export function buildLeadFields(lead: LeadForCrm, config: Pick<BitrixConfig, "projectField" | "defaultAssigneeId" | "sourceDescription">) {
   const [firstName, ...rest] = lead.name.trim().split(/\s+/);
   const formLabel = LEAD_FORM_TYPE_LABELS[lead.formType];
   const extraLines = Object.entries(lead.extra ?? {})
@@ -74,7 +75,7 @@ export function buildLeadFields(lead: LeadForCrm, config: Pick<BitrixConfig, "pr
     PHONE: [{ VALUE: lead.phone, VALUE_TYPE: "WORK" }],
     EMAIL: [{ VALUE: lead.email, VALUE_TYPE: "WORK" }],
     SOURCE_ID: "WEB",
-    SOURCE_DESCRIPTION: `Website – ${formLabel}`,
+    SOURCE_DESCRIPTION: `${config.sourceDescription || "Website"} – ${formLabel}`,
     COMMENTS: comments,
     OPENED: "Y",
     UTM_SOURCE: lead.utmSource,
@@ -134,4 +135,23 @@ export async function createLead(config: BitrixConfig, lead: LeadForCrm): Promis
     throw new IntegrationError("Unexpected Bitrix24 response to crm.lead.add", true, status);
   }
   return String(parsed.data.result);
+}
+
+/**
+ * Read-only connectivity check: calls crm.lead.fields, which needs the CRM
+ * scope on the webhook but creates nothing. Used by the CMS Integrations tab.
+ */
+export async function testConnection(config: Pick<BitrixConfig, "webhookUrl">): Promise<{ ok: true; fieldCount: number } | { ok: false; error: string }> {
+  try {
+    const { status, body } = await fetchJson<{ result?: Record<string, unknown> }>(endpoint(config as BitrixConfig, "crm.lead.fields"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+      timeoutMs: 8000,
+    });
+    if (status !== 200 || !body?.result || typeof body.result !== "object") return { ok: false, error: interpretError(status, body).message };
+    return { ok: true, fieldCount: Object.keys(body.result).length };
+  } catch (e) {
+    return { ok: false, error: e instanceof IntegrationError ? e.message : "Unexpected error" };
+  }
 }

@@ -219,3 +219,57 @@
     @apply pointer-events-none float-start h-0 text-muted-foreground;
   }
 }
+
+/* ─────────── Location map pins (Leaflet divIcons) ─────────── */
+@layer components {
+  .pci-map {
+    z-index: 0;
+    isolation: isolate;
+  }
+  .pci-pin {
+    display: flex;
+    width: 34px;
+    height: 34px;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #fff;
+    border-radius: 50% 50% 50% 0;
+    background: var(--primary);
+    box-shadow: 0 4px 12px rgb(0 0 0 / 0.3);
+    transform: rotate(-45deg);
+  }
+  .pci-pin > span {
+    transform: rotate(45deg);
+    color: var(--primary-foreground);
+    font: 600 12px/1 var(--font-sans);
+  }
+  .pci-pin--approx {
+    border-style: dashed;
+    background: var(--background);
+    border-color: var(--primary);
+  }
+  .pci-pin--approx > span {
+    color: var(--primary);
+  }
+  .pci-popup {
+    display: grid;
+    gap: 2px;
+    min-width: 160px;
+    font-family: var(--font-sans);
+  }
+  .pci-popup strong {
+    font-size: 14px;
+    color: var(--foreground);
+  }
+  .pci-popup span,
+  .pci-popup em {
+    font-size: 12px;
+    color: var(--muted-foreground);
+  }
+  .pci-popup a {
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary);
+  }
+}

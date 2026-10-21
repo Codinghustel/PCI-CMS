@@ -126,6 +126,12 @@ export async function saveSettings(actor: Actor, input: unknown) {
   if (data.analytics.gtmId && !/^GTM-[A-Z0-9]{4,12}$/.test(data.analytics.gtmId)) {
     throw new ValidationError("Check the Google Tag Manager ID.", { "analytics.gtmId": ["Use the format GTM-XXXXXXX"] });
   }
+  if (data.integrations.bitrixProjectField && !/^UF_CRM_[A-Z0-9_]+$/.test(data.integrations.bitrixProjectField)) {
+    throw new ValidationError("Check the Bitrix24 field code.", { "integrations.bitrixProjectField": ["Custom lead fields look like UF_CRM_PROJECT (capital letters, digits, underscores)."] });
+  }
+  if (data.integrations.bitrixAssigneeId && !/^\d+$/.test(data.integrations.bitrixAssigneeId)) {
+    throw new ValidationError("Check the Bitrix24 user id.", { "integrations.bitrixAssigneeId": ["Enter the numeric Bitrix24 user id."] });
+  }
   await db.siteSettings.upsert({
     where: { id: "default" },
     update: { data: data as unknown as Prisma.InputJsonValue },

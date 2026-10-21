@@ -27,8 +27,8 @@ export default async function LocationsPage() {
                     <span className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
                     <span className="relative">
                       <span className="eyebrow block">{l.city}, {MARKET_LABELS[l.market]}</span>
-                      <span className="heading mt-2 block text-3xl">{l.name}</span>
-                      {l.summary ? <span className="mt-2 block line-clamp-2 text-sm text-white/80">{l.summary}</span> : null}
+                      <span className="heading mt-2 line-clamp-2 text-3xl">{l.name}</span>
+                      {l.summary ? <span className="mt-2 line-clamp-2 text-sm text-white/80">{l.summary}</span> : null}
                       <span className="mt-3 block text-xs font-semibold tracking-wider uppercase">{l.projectCount} project{l.projectCount === 1 ? "" : "s"}</span>
                     </span>
                   </Link>

@@ -2,6 +2,7 @@ import { hash, verify } from "@node-rs/argon2";
 import { db } from "@/server/db";
 import { audit } from "@/server/services/audit";
 import { consumeRateLimit, resetRateLimit } from "@/server/services/rate-limit";
+import { rolePermissions } from "@/server/services/roles";
 import { RateLimitError, UnauthorizedError, ValidationError } from "@/server/errors";
 import { signSessionToken, SESSION_ABSOLUTE_SECONDS } from "@/lib/auth/jwt";
 import type { Actor, RoleName } from "@/lib/auth/permissions";
@@ -111,7 +112,9 @@ export async function resolveSession(sessionId: string, userId: string): Promise
   if (!session || session.userId !== userId) return null;
   if (session.revokedAt || session.expiresAt <= new Date()) return null;
   if (!session.user.isActive) return null;
-  return toActor(session.user);
+  const actor = toActor(session.user);
+  // Effective (possibly customised) role permissions, resolved on every request.
+  return { ...actor, permissions: await rolePermissions(actor.role) };
 }
 
 export async function logout(sessionId: string, actor: Pick<Actor, "id"> | null) {

@@ -24,7 +24,7 @@ export const SETTINGS_GROUPS = [
     label: "Contact & offices",
     fields: [
       { type: "text", name: "phone", label: "Main phone number", maxLength: 30, help: "Used by Call buttons, e.g. +92 51 8738545" },
-      { type: "text", name: "whatsapp", label: "WhatsApp number", maxLength: 30, help: "International format, e.g. +923011233333. Should be the Bitrix24-connected number." },
+      { type: "text", name: "whatsapp", label: "WhatsApp number", maxLength: 30, help: "International format, e.g. +923011233333. Should be the Bitrix24-connected number. If empty, WhatsApp buttons use the main phone number." },
       { type: "text", name: "whatsappMessage", label: "WhatsApp pre-filled message", maxLength: 200 },
       { type: "text", name: "email", label: "General email", maxLength: 120 },
       {
@@ -111,6 +111,18 @@ export const SETTINGS_GROUPS = [
       { type: "number", name: "updateStaleDays", label: "Warn when a project's latest construction update is older than (days)", min: 7, max: 365 },
     ],
   },
+  {
+    // Non-secret integration options. Secrets (webhook URL, payment secret, cron
+    // token) stay in environment variables / the secret manager by design.
+    key: "integrations",
+    label: "Integrations",
+    fields: [
+      { type: "boolean", name: "crmEnabled", label: "Deliver website leads to Bitrix24", defaultValue: true, help: "Turn off to store leads in the CMS only (e.g. during CRM maintenance). They are delivered when turned back on." },
+      { type: "text", name: "bitrixProjectField", label: "Bitrix24 project field code", maxLength: 60, help: "Custom lead field that receives the project's Bitrix24 id, e.g. UF_CRM_PROJECT. Leave blank to use the environment default." },
+      { type: "text", name: "bitrixAssigneeId", label: "Default responsible user id", maxLength: 20, help: "Bitrix24 user id assigned to new leads. Leave blank to use the environment default or Bitrix24's own routing." },
+      { type: "text", name: "bitrixSourceDescription", label: "Lead source description prefix", maxLength: 60, help: "Shown in Bitrix24 as the source description, e.g. 'Website'." },
+    ],
+  },
 ] as const satisfies readonly { key: string; label: string; fields: FieldDef[] }[];
 
 export type SettingsGroupKey = (typeof SETTINGS_GROUPS)[number]["key"];
@@ -138,6 +150,7 @@ export interface SiteSettings {
   payment: { enabled: boolean; buttonLabel: string; heading: string; intro: string; securityNote: string };
   chatbot: { enabled: boolean; title: string; greeting: string; disclaimer: string };
   quality: { commercialStaleDays: number | null; updateStaleDays: number | null };
+  integrations: { crmEnabled: boolean; bitrixProjectField: string; bitrixAssigneeId: string; bitrixSourceDescription: string };
 }
 
 export const DEFAULT_SETTINGS: SiteSettings = {
@@ -154,6 +167,7 @@ DEFAULT_SETTINGS.payment.heading = "Pay My Installment";
 DEFAULT_SETTINGS.chatbot.title = "Project Finder";
 DEFAULT_SETTINGS.quality.commercialStaleDays = 90;
 DEFAULT_SETTINGS.quality.updateStaleDays = 60;
+DEFAULT_SETTINGS.integrations.bitrixSourceDescription = "Website";
 
 /** Merges stored settings with defaults group by group. */
 export function resolveSettings(stored: unknown): SiteSettings {
@@ -167,8 +181,9 @@ export function resolveSettings(stored: unknown): SiteSettings {
   return out as unknown as SiteSettings;
 }
 
+/** WhatsApp click-to-chat link: the dedicated WhatsApp number, else the main phone number. */
 export function whatsappLink(settings: SiteSettings, context?: string): string | null {
-  const digits = settings.contact.whatsapp.replace(/\D/g, "");
+  const digits = (settings.contact.whatsapp || settings.contact.phone).replace(/\D/g, "");
   if (!digits) return null;
   const message = [settings.contact.whatsappMessage, context].filter(Boolean).join(" ");
   return `https://wa.me/${digits}${message ? `?text=${encodeURIComponent(message)}` : ""}`;

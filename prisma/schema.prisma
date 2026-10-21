@@ -629,3 +629,27 @@ model CrmDeliveryAttempt {
 
   @@index([leadId, attemptNo])
 }
+
+// ─────────────────────────────── Configuration & operations ───────────────────────────────
+
+/// Custom permission set for a role. A missing row means the role uses its
+/// built-in defaults (src/lib/auth/permissions.ts). ADMIN is never customised.
+model RolePermission {
+  role        Role     @id
+  permissions String[]
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+}
+
+/// History of scheduled job executions (e.g. CRM delivery retries).
+model JobRun {
+  id         String    @id @default(cuid())
+  job        String
+  trigger    String    @default("schedule")
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  success    Boolean   @default(false)
+  summary    String    @default("")
+
+  @@index([job, startedAt])
+}

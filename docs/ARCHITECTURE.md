@@ -76,8 +76,10 @@ cannot be removed or demoted.
 | Sales Approver | Approve/reject commercial project fields; view content and leads |
 | Viewer | Read-only content, media and leads |
 
-The master prompt lists 11 roles; these five cover the same separations of duty for launch and can be
-split further — permissions are already granular (20 permissions).
+Administrators can **customise each non-admin role** in CMS → Roles & permissions, where each of the
+20 permissions is explained and a matrix compares roles. Custom sets are stored in `RolePermission`,
+resolved on every request (changes reach signed-in users immediately) and audited. Administrators always
+hold every permission, and "Manage users & roles" can never be granted to another role.
 
 ## 5. Security
 
@@ -108,8 +110,14 @@ split further — permissions are already granular (20 permissions).
 | **GA4 / GTM / Meta Pixel** | Data layer + consent built | GTM loads only after "Accept all". Events: project_view, category_browse, brochure_download, floor_plan_view, video_play, vr_start, chatbot_start/handover, form_start/submit, generate_lead (only after a stored submission), whatsapp_click, call_click, pay_installment_click, payment_page_start, share. Needs PCI's GTM container ID. Meta CAPI not built (P2). |
 | **YouTube** | Built | Privacy-enhanced embeds with click-to-load facade. |
 | **VR / 360°** | Built | Provider embed URLs (https) per project/unit; full-screen dialog + open-in-new-tab fallback; no empty VR sections. |
-| **Maps** | Built (interim) | Google Maps embed by address/coordinates, no API key. Provider is an open decision. |
+| **Maps** | Built | Location pages: Leaflet + OpenStreetMap tiles with a numbered pin per project; projects without coordinates get an "approximate" pin around the location centre (seeded centres come from OSM Nominatim). Project and contact pages: Google Maps embed. OSM's public tiles suit light traffic only — choose a tile provider for production (open decision). |
 | **Chatbot** | Built (rule-based "Project Finder") | Grounded in published projects only; never shows unapproved prices; hand-over creates a CHATBOT lead. The Bitrix24-bot vs website-assistant ADR is still open. |
+
+**Settings → Integrations** shows each integration's status (secrets masked), Bitrix24 queue statistics
+and the scheduled job's last run, and lets administrators edit the non-secret options (CRM delivery
+on/off, Bitrix24 project field, default responsible user, source label), run a read-only Bitrix24
+connection test (`crm.lead.fields`) and deliver pending leads on demand. Secrets stay in environment
+variables. WhatsApp buttons use the dedicated WhatsApp number, else the main phone number.
 
 ## 7. HTTP API
 
@@ -132,14 +140,14 @@ CMS mutations use Server Actions in `src/app/admin/actions/`.
 
 ## 8. Testing (all passing at hand-over)
 
-- **Unit (46):** RBAC, workflow, slugs/YouTube/phone/link safety, sanitisation, file-type sniffing,
+- **Unit (48):** RBAC, workflow, slugs/YouTube/phone/link safety, sanitisation, file-type sniffing,
   section/theme/lead/project/redirect validation, Bitrix24 mapping & error classification, payment
   signing, proxy routing decisions, JWT tampering/expiry.
-- **Integration (23, real PostgreSQL):** page workflow, revisions/restore, auto-redirects, reserved and
+- **Integration (28, real PostgreSQL):** role customisation & escalation guards, integration status/masking, CRM pause + settings-driven mapping, job runs, connection test; page workflow, revisions/restore, auto-redirects, reserved and
   duplicate slugs, DLD publish block, commercial approval & separation of duties, update validation,
   theme/menu/redirect validation, login/lockout/revocation/deactivation, last-admin protection, upload
   security, media-in-use protection, lead storage, anti-spam, CRM retry + idempotency.
-- **E2E (9, Playwright):** public browsing, draft privacy, 301/404 statuses, CMS access control and
+- **E2E (11, Playwright):** role customisation applied live, Integrations tab; public browsing, draft privacy, 301/404 statuses, CMS access control and
   cross-site rejection, sign-in/out, page build → publish, duplicate slug, author restrictions, theme
   applied publicly, form validation + success with an unreachable CRM, disguised upload rejection.
 

@@ -28,7 +28,7 @@ function checkSize(type: DetectedType, size: number) {
 }
 
 /** Re-encodes images: applies EXIF orientation, strips metadata, caps dimensions. */
-async function processImage(data: Buffer, type: DetectedType) {
+export async function processImage(data: Buffer, type: DetectedType) {
   if (type.mime === "image/gif") {
     const meta = await sharp(data, { animated: true }).metadata();
     return { data, width: meta.width ?? null, height: meta.pageHeight ?? meta.height ?? null };

@@ -22,15 +22,18 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       </main>
       <SiteFooter />
       <MobileCtaBar />
-      <WhatsAppFloat />
-      {settings.chatbot.enabled ? (
-        <ProjectFinder
-          title={settings.chatbot.title || "Project Finder"}
-          greeting={settings.chatbot.greeting}
-          disclaimer={settings.chatbot.disclaimer}
-          consentText={settings.forms.consentText}
-        />
-      ) : null}
+      {/* Floating actions, bottom-right: WhatsApp above the Project Finder (above the mobile bar on phones). */}
+      <div className="pointer-events-none fixed end-4 bottom-20 z-40 flex flex-col items-end gap-3 md:end-6 md:bottom-6 [&>*]:pointer-events-auto">
+        <WhatsAppFloat />
+        {settings.chatbot.enabled ? (
+          <ProjectFinder
+            title={settings.chatbot.title || "Project Finder"}
+            greeting={settings.chatbot.greeting}
+            disclaimer={settings.chatbot.disclaimer}
+            consentText={settings.forms.consentText}
+          />
+        ) : null}
+      </div>
       <Suspense fallback={null}>
         <SiteAnalytics gtmId={settings.analytics.gtmId} bannerText={settings.analytics.cookieBannerText} />
       </Suspense>

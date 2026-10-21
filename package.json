@@ -19,6 +19,8 @@
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
     "test:e2e": "playwright test",
+    "diagnose:ui": "node tests/diagnostics/layout-check.mjs http://localhost:3000 && node tests/diagnostics/scroll-check.mjs http://localhost:3000",
+    "media:restore": "node --conditions=react-server --import tsx scripts/restore-media-files.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -32,6 +34,7 @@
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.0",
     "jose": "^6.2.12",
+    "leaflet": "^1.9.4",
     "lucide-react": "^1.59.0",
     "next": "16.4.2",
     "next-themes": "^0.4.6",
@@ -50,6 +53,7 @@
   "devDependencies": {
     "@playwright/test": "^1.64.1",
     "@tailwindcss/turbopack": "^4",
+    "@types/leaflet": "^1.9.22",
     "@types/node": "^24.19.2",
     "@types/pg": "^8.23.1",
     "@types/react": "^19",

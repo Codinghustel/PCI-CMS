@@ -12,8 +12,8 @@ import type { ProjectCardData, PublicMedia } from "@/server/public-data";
 
 export function ProjectCard({ project, priority }: { project: ProjectCardData; priority?: boolean }) {
   return (
-    <article className="group relative flex flex-col overflow-hidden bg-card text-card-foreground shadow-sm ring-1 ring-border transition-shadow hover:shadow-lg">
-      <div className="relative aspect-[4/3] overflow-hidden">
+    <article className="group relative flex h-full flex-col overflow-hidden bg-card text-card-foreground shadow-sm ring-1 ring-border transition-shadow hover:shadow-lg">
+      <div className="relative aspect-[4/3] shrink-0 overflow-hidden">
         <MediaImage
           media={project.image}
           alt={project.image?.alt || project.name}
@@ -29,28 +29,28 @@ export function ProjectCard({ project, priority }: { project: ProjectCardData; p
         </div>
       </div>
       <div className="flex flex-1 flex-col p-6">
-        <p className="eyebrow mb-2">{PROJECT_CATEGORY_LABELS[project.category]}</p>
-        <h3 className="text-2xl">
+        <p className="eyebrow mb-2 truncate">{PROJECT_CATEGORY_LABELS[project.category]}</p>
+        <h3 className="line-clamp-2 min-h-[2.2em] text-2xl" title={project.name}>
           <Link href={`/projects/${project.slug}`} className="after:absolute after:inset-0 focus-visible:outline-none">
             {project.name}
           </Link>
         </h3>
-        <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
+        <p className="mt-2 flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
           <MapPin className="size-4 shrink-0" aria-hidden />
-          {project.address || project.city}
+          <span className="truncate" title={project.address || project.city}>{project.address || project.city}</span>
         </p>
         {project.facts.length || project.price ? (
           <dl className="mt-5 grid grid-cols-2 gap-3 border-t border-border pt-4 text-sm">
             {project.facts.map((f) => (
-              <div key={f.label}>
-                <dt className="text-xs text-muted-foreground">{f.label}</dt>
-                <dd className="font-medium">{f.value}</dd>
+              <div key={f.label} className="min-w-0">
+                <dt className="truncate text-xs text-muted-foreground">{f.label}</dt>
+                <dd className="truncate font-medium" title={f.value}>{f.value}</dd>
               </div>
             ))}
             {project.price ? (
-              <div>
-                <dt className="text-xs text-muted-foreground">Starting from</dt>
-                <dd className="font-medium">{formatPrice(project.price.amount, project.price.currency)}</dd>
+              <div className="min-w-0">
+                <dt className="truncate text-xs text-muted-foreground">Starting from</dt>
+                <dd className="truncate font-medium">{formatPrice(project.price.amount, project.price.currency)}</dd>
               </div>
             ) : null}
           </dl>
@@ -76,8 +76,8 @@ export interface UpdateCardData {
 
 export function UpdateCard({ update }: { update: UpdateCardData }) {
   return (
-    <article className="group relative flex flex-col overflow-hidden bg-card text-card-foreground ring-1 ring-border">
-      <div className="relative aspect-video overflow-hidden">
+    <article className="group relative flex h-full flex-col overflow-hidden bg-card text-card-foreground ring-1 ring-border">
+      <div className="relative aspect-video shrink-0 overflow-hidden">
         <MediaImage media={update.image} alt={update.image?.alt || update.title} fill sizes="(min-width: 1024px) 33vw, 100vw" className="transition-transform duration-700 group-hover:scale-105" />
         {update.progressPercent != null ? (
           <span className="absolute end-3 bottom-3 bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
@@ -89,8 +89,8 @@ export function UpdateCard({ update }: { update: UpdateCardData }) {
         ) : null}
       </div>
       <div className="flex flex-1 flex-col p-5">
-        <p className="eyebrow mb-2">{update.project.name}</p>
-        <h3 className="text-xl">
+        <p className="eyebrow mb-2 truncate">{update.project.name}</p>
+        <h3 className="line-clamp-2 min-h-[2.2em] text-xl" title={update.title}>
           <Link href={`/project-updates/${update.slug}`} className="after:absolute after:inset-0">
             {update.title}
           </Link>
@@ -117,16 +117,16 @@ export interface ArticleCardData {
 
 export function ArticleCard({ article }: { article: ArticleCardData }) {
   return (
-    <article className="group relative flex flex-col">
-      <div className="relative aspect-[3/2] overflow-hidden">
+    <article className="group relative flex h-full flex-col">
+      <div className="relative aspect-[3/2] shrink-0 overflow-hidden">
         <MediaImage media={article.coverImage} alt={article.coverImage?.alt || article.title} fill sizes="(min-width: 1024px) 33vw, 100vw" className="transition-transform duration-700 group-hover:scale-105" />
       </div>
-      <div className="pt-5">
-        <p className="eyebrow mb-2">
+      <div className="flex flex-1 flex-col pt-5">
+        <p className="eyebrow mb-2 truncate">
           {ARTICLE_CATEGORY_LABELS[article.category]}
           {article.publishedAt ? <span className="ms-2 text-muted-foreground">· {formatDate(article.publishedAt, "short")}</span> : null}
         </p>
-        <h3 className="text-2xl leading-snug">
+        <h3 className="line-clamp-2 min-h-[2.75em] text-2xl leading-snug" title={article.title}>
           <Link href={`/media/${article.slug}`} className="after:absolute after:inset-0">
             {article.title}
           </Link>

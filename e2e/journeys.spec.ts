@@ -5,6 +5,7 @@ const ADMIN = "admin@pci-orbit.local";
 const AUTHOR = "author@pci-orbit.local";
 
 async function signIn(page: Page, email: string, password = PASSWORD) {
+  await page.context().clearCookies(); // start from a signed-out state
   await page.goto("/admin/login");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
@@ -156,4 +157,36 @@ test("media uploads reject disguised and unsupported files", async ({ page }) =>
   });
   expect(svg.status()).toBe(422);
   expect((await svg.json()).message).toMatch(/Unsupported file type/);
+});
+
+test("administrators customise role permissions and the change applies immediately", async ({ page }) => {
+  await signIn(page, ADMIN);
+  await page.goto("/admin/roles?role=AUTHOR");
+  await expect(page.getByRole("heading", { name: "Roles & permissions" })).toBeVisible();
+  await page.getByRole("switch", { name: /Publish & unpublish/ }).click();
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText(/Permissions updated/).first()).toBeVisible();
+  // Administrator-only permission cannot be granted.
+  await expect(page.getByRole("switch", { name: /Manage users & roles/ })).toBeDisabled();
+
+  await signIn(page, AUTHOR);
+  await page.goto("/admin/pages");
+  await page.getByRole("button", { name: "New page" }).click();
+  await page.getByLabel("Title").fill("Author Can Publish");
+  await page.getByRole("button", { name: "Create page" }).click();
+  await expect(page.getByRole("button", { name: "Publish" })).toBeVisible();
+});
+
+test("settings show integrations in a dedicated tab", async ({ page }) => {
+  await signIn(page, ADMIN);
+  await page.goto("/admin/settings");
+  await expect(page.getByText("Scheduled job")).toHaveCount(0); // old status cards removed from the top
+  await page.getByRole("tab", { name: "Integrations" }).click();
+  await expect(page.getByText("Bitrix24 CRM", { exact: true })).toBeVisible();
+  await expect(page.getByText("Scheduled job", { exact: true })).toBeVisible();
+  await expect(page.getByText("Payment Service", { exact: true })).toBeVisible();
+  await expect(page.getByText("Search indexing", { exact: true })).toBeVisible();
+  await expect(page.getByText(/\/rest\/1\/e2e/)).toHaveCount(0); // webhook path is masked
+  await page.getByRole("button", { name: "Deliver pending leads now" }).click();
+  await expect(page.getByText(/Delivery job finished/).first()).toBeVisible();
 });

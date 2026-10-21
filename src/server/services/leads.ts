@@ -70,13 +70,23 @@ export async function submitLead(input: unknown, meta: SubmissionMeta) {
   return lead;
 }
 
-function bitrixConfig(): BitrixConfig | null {
+/**
+ * Effective Bitrix24 configuration: the webhook (secret) from the environment,
+ * non-secret options from Settings → Integrations (falling back to env).
+ * Returns a reason when delivery is not possible.
+ */
+export async function bitrixConfig(): Promise<{ config: BitrixConfig } | { config: null; reason: string }> {
   const env = serverEnv();
-  if (!env.BITRIX24_WEBHOOK_URL) return null;
+  if (!env.BITRIX24_WEBHOOK_URL) return { config: null, reason: "BITRIX24_WEBHOOK_URL is not configured" };
+  const { integrations } = await getSettings();
+  if (!integrations.crmEnabled) return { config: null, reason: "Bitrix24 delivery is turned off in Settings → Integrations" };
   return {
-    webhookUrl: env.BITRIX24_WEBHOOK_URL,
-    projectField: env.BITRIX24_PROJECT_FIELD,
-    defaultAssigneeId: env.BITRIX24_DEFAULT_ASSIGNEE_ID,
+    config: {
+      webhookUrl: env.BITRIX24_WEBHOOK_URL,
+      projectField: integrations.bitrixProjectField || env.BITRIX24_PROJECT_FIELD,
+      defaultAssigneeId: integrations.bitrixAssigneeId || env.BITRIX24_DEFAULT_ASSIGNEE_ID,
+      sourceDescription: integrations.bitrixSourceDescription || "Website",
+    },
   };
 }
 
@@ -86,13 +96,14 @@ function bitrixConfig(): BitrixConfig | null {
  * Bitrix24 for an existing lead with the same correlation id (ORIGIN_ID).
  */
 export async function deliverLead(leadId: string, opts: { manual?: boolean } = {}) {
-  const config = bitrixConfig();
+  const resolved = await bitrixConfig();
+  const config = resolved.config;
   const now = new Date();
 
   if (!config) {
     await db.lead.updateMany({
       where: { id: leadId, crmStatus: { in: ["PENDING", "FAILED", "NOT_CONFIGURED"] } },
-      data: { crmStatus: "NOT_CONFIGURED", crmLastError: "BITRIX24_WEBHOOK_URL is not configured", crmNextAttemptAt: null },
+      data: { crmStatus: "NOT_CONFIGURED", crmLastError: "reason" in resolved ? resolved.reason : "", crmNextAttemptAt: null },
     });
     return { status: "NOT_CONFIGURED" as const };
   }
@@ -155,7 +166,7 @@ export async function deliverLead(leadId: string, opts: { manual?: boolean } = {
 
 /** Processes leads due for (re)delivery. Called by the scheduled job endpoint. */
 export async function deliverDueLeads(limit = 25) {
-  const config = bitrixConfig();
+  const { config } = await bitrixConfig();
   const due = await db.lead.findMany({
     where: config
       ? {

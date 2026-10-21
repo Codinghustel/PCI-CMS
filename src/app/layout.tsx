@@ -16,7 +16,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" dir="ltr" className={`${fontVariables} h-full antialiased`}>
+    <html lang="en" dir="ltr" data-scroll-behavior="smooth" className={`${fontVariables} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         <TooltipProvider>{children}</TooltipProvider>
         <Toaster richColors position="top-right" />

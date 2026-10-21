@@ -107,6 +107,8 @@ const cardSelect = {
   showPrice: true,
   commercialStatus: true,
   keyFacts: true,
+  latitude: true,
+  longitude: true,
   cardImage: { select: mediaSelect },
   heroImage: { select: mediaSelect },
 } satisfies Prisma.ProjectSelect;
@@ -124,6 +126,8 @@ export interface ProjectCardData {
   image: PublicMedia | null;
   price: { amount: number; currency: string } | null;
   facts: { label: string; value: string }[];
+  latitude: number | null;
+  longitude: number | null;
 }
 
 /** Commercial values are only shown when approved and not hidden by the editor. */
@@ -146,6 +150,8 @@ function toCard(p: CardRow): ProjectCardData {
     image: toPublicMedia(p.cardImage ?? p.heroImage),
     price: approvedPrice(p),
     facts: ((p.keyFacts as { label: string; value: string }[]) ?? []).slice(0, 2),
+    latitude: p.latitude,
+    longitude: p.longitude,
   };
 }
 

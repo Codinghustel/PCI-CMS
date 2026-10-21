@@ -49,7 +49,7 @@ async function ArticlePageContent({ params }: { params: Promise<{ slug: string }
         intro={a.excerpt}
         crumbs={[{ name: "Media", path: "/media" }, { name: a.title, path: `/media/${a.slug}` }]}
       >
-        <div className="mt-8"><ShareButton title={a.title} /></div>
+        <div className="mt-8"><ShareButton title={a.title} size="md" /></div>
       </PageHero>
       <article className="section-y">
         <div className="container-site max-w-3xl space-y-10">

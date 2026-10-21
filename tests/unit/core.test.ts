@@ -110,3 +110,18 @@ describe("upload file type detection", () => {
     expect(detectFileType(new Uint8Array([0x4d, 0x5a, 0x90, 0, 3, 0, 0, 0, 4, 0, 0, 0]))).toBeNull(); // PE/EXE
   });
 });
+
+describe("customisable role permissions", () => {
+  it("uses an actor's resolved permission list over the defaults", async () => {
+    const { can: canDo } = await import("@/lib/auth/permissions");
+    const author = { id: "a", role: "AUTHOR" as const, name: "A", email: "a@x", permissions: ["content.publish", "content.read"] as const };
+    expect(canDo(author, "content.publish")).toBe(true);
+    expect(canDo(author, "media.upload")).toBe(false); // not in the custom list
+  });
+  it("never grants admin-only permissions to other roles", async () => {
+    const { can: canDo, sanitizeRolePermissions } = await import("@/lib/auth/permissions");
+    expect(sanitizeRolePermissions("EDITOR", ["users.manage", "content.read", "bogus"])).toEqual(["content.read"]);
+    expect(canDo({ role: "EDITOR", permissions: ["users.manage"] }, "users.manage")).toBe(false);
+    expect(canDo({ role: "ADMIN", permissions: [] }, "users.manage")).toBe(true);
+  });
+});

@@ -37,9 +37,15 @@ export function DocumentDownload({
   projectName: string;
   consentText: string;
   event?: TrackEvent;
-  variant?: "link" | "button";
+  /** "hero" = large light-outline button for dark hero banners. */
+  variant?: "link" | "button" | "hero";
 }) {
-  const cls = variant === "button" ? siteButtonClass("outline", "md") : "inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline";
+  const cls =
+    variant === "hero"
+      ? siteButtonClass("outline-light", "lg")
+      : variant === "button"
+        ? siteButtonClass("outline", "md")
+        : "inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline";
   if (!gated) {
     return (
       <a href={url} target="_blank" rel="noopener" className={cls} data-track={event} data-track-label={title} data-track-project={projectName}>
@@ -74,11 +80,12 @@ export function DocumentDownload({
   );
 }
 
-export function ShareButton({ title }: { title: string }) {
+/** Share via the Web Share API, falling back to copying the link. Matches the hero button size. */
+export function ShareButton({ title, size = "lg" }: { title: string; size?: "sm" | "md" | "lg" }) {
   return (
     <button
       type="button"
-      className={siteButtonClass("ghost-light", "sm", "border border-white/30")}
+      className={siteButtonClass("outline-light", size)}
       onClick={async () => {
         const url = window.location.href.split("?")[0];
         track("share", { label: title });

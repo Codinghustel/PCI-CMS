@@ -45,6 +45,8 @@ in non-production). Change passwords after first sign-in.
 | `npm run seed:assets` | Re-download seed images/posts from premierchoiceint.com (public GETs only) |
 | `npm test` | Unit + integration tests (Vitest) |
 | `npm run test:e2e` | End-to-end tests (Playwright; builds against the `pci_e2e` database) |
+| `npm run diagnose:ui` | Browser checks against a running site on :3000 — responsive layout invariants and scroll-preserving filters |
+| `npm run media:restore` | Re-create missing media files from `prisma/seed-assets` (keeps URLs; no database changes) |
 
 Tests need the local database running (`npm run db:start`). Integration tests use `pci_test` and
 e2e uses `pci_e2e`; both are emptied by the test helpers, which refuse to run against any other

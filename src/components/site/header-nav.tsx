@@ -116,8 +116,20 @@ function HeaderNavInner({ items, siteName, logo, logoLight, phone, tel, payment,
 
         <div className="flex items-center gap-2">
           {tel ? (
-            <a href={tel} data-track="call_click" data-track-label="header" className={cn("hidden items-center gap-2 px-2 text-sm font-semibold lg:flex", transparent ? "text-white" : "text-primary")}>
-              <Phone className="size-4" aria-hidden /> {phone}
+            <a
+              href={tel}
+              data-track="call_click"
+              data-track-label="header"
+              aria-label={`Call ${phone}`}
+              title={phone}
+              className={cn(
+                // Icon-only until there is room for the full number next to the navigation.
+                "hidden size-9 shrink-0 items-center justify-center gap-2 rounded-full border text-sm font-semibold whitespace-nowrap transition md:inline-flex 2xl:size-auto 2xl:rounded-none 2xl:border-0 2xl:px-2",
+                transparent ? "border-white/40 text-white hover:bg-white/10" : "border-border text-primary hover:bg-muted"
+              )}
+            >
+              <Phone className="size-4 shrink-0" aria-hidden />
+              <span className="hidden 2xl:inline">{phone}</span>
             </a>
           ) : null}
           {payment.enabled ? (

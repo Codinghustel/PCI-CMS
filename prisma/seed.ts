@@ -148,12 +148,13 @@ async function main() {
   await db.themeSettings.upsert({ where: { id: "default" }, update: {}, create: { id: "default", tokens: DEFAULT_THEME as unknown as Prisma.InputJsonValue, updatedById: admin.id } });
 
   // ───────── Locations ─────────
+  // Centre coordinates from OpenStreetMap (Nominatim, ODbL) — approximate area centres.
   const locations = [
-    { slug: "dha-phase-1-islamabad", name: "DHA Phase 1", city: "Islamabad", market: "PAKISTAN" as const, card: "grand-orchard" },
-    { slug: "bahria-town-islamabad", name: "Bahria Town", city: "Islamabad", market: "PAKISTAN" as const, card: "68-high-street" },
-    { slug: "bahria-intellectual-village", name: "Bahria Intellectual Village", city: "Islamabad", market: "PAKISTAN" as const, card: "buraq-heights" },
-    { slug: "jumeirah-village-circle", name: "Jumeirah Village Circle", city: "Dubai", market: "UAE" as const, card: "gateway" },
-    { slug: "al-barari", name: "Al Barari", city: "Dubai", market: "UAE" as const, card: "barari-views" },
+    { slug: "dha-phase-1-islamabad", name: "DHA Phase 1", city: "Islamabad", market: "PAKISTAN" as const, card: "grand-orchard", lat: 33.5379275, lng: 73.101301 },
+    { slug: "bahria-town-islamabad", name: "Bahria Town", city: "Islamabad", market: "PAKISTAN" as const, card: "68-high-street", lat: 33.530822, lng: 73.1179633 },
+    { slug: "bahria-intellectual-village", name: "Bahria Intellectual Village", city: "Islamabad", market: "PAKISTAN" as const, card: "buraq-heights", lat: 33.5272137, lng: 73.0929693 },
+    { slug: "jumeirah-village-circle", name: "Jumeirah Village Circle", city: "Dubai", market: "UAE" as const, card: "gateway", lat: 25.0565882, lng: 55.2079869 },
+    { slug: "al-barari", name: "Al Barari", city: "Dubai", market: "UAE" as const, card: "barari-views", lat: 25.1082771, lng: 55.31877 },
   ];
   const locationIds: Record<string, string> = {};
   for (const l of locations) {
@@ -167,6 +168,8 @@ async function main() {
         summary: `Premier Choice International developments in ${l.name}, ${l.city}.`,
         overview: `<p>Explore PCI projects located in ${l.name}, ${l.city}.</p>`,
         heroImageId: hero,
+        latitude: l.lat,
+        longitude: l.lng,
         status: "PUBLISHED",
         publishedAt: new Date(),
       },
@@ -175,9 +178,9 @@ async function main() {
   }
 
   // ───────── Projects (from the current website's project listing) ─────────
-  type Seed = { slug: string; name: string; address: string; city: string; market: "PAKISTAN" | "UAE" | "CANADA"; status: "ONGOING" | "COMPLETED"; area: string; type: string; category: "RESIDENTIAL" | "COMMERCIAL" | "MIXED_USE" | "RETAIL" | "HOSPITALITY"; location?: string; featured?: boolean };
+  type Seed = { slug: string; name: string; address: string; city: string; market: "PAKISTAN" | "UAE" | "CANADA"; status: "ONGOING" | "COMPLETED"; area: string; type: string; category: "RESIDENTIAL" | "COMMERCIAL" | "MIXED_USE" | "RETAIL" | "HOSPITALITY"; location?: string; featured?: boolean; lat?: number; lng?: number };
   const projects: Seed[] = [
-    { slug: "grand-orchard", name: "Grand Orchard", address: "DHA Phase 1, Islamabad", city: "Islamabad", market: "PAKISTAN", status: "ONGOING", area: "1,000,000 sq ft", type: "Commercial & Residential", category: "MIXED_USE", location: "dha-phase-1-islamabad", featured: true },
+    { slug: "grand-orchard", name: "Grand Orchard", address: "DHA Phase 1, Islamabad", city: "Islamabad", market: "PAKISTAN", status: "ONGOING", area: "1,000,000 sq ft", type: "Commercial & Residential", category: "MIXED_USE", location: "dha-phase-1-islamabad", featured: true, lat: 33.5487378, lng: 73.0905512 },
     { slug: "gateway", name: "Gateway", address: "Jumeirah Village Circle, Dubai", city: "Dubai", market: "UAE", status: "ONGOING", area: "300,000 sq ft", type: "Residential & Commercial", category: "MIXED_USE", location: "jumeirah-village-circle", featured: true },
     { slug: "buraq-heights", name: "Buraq Heights", address: "Bahria Intellectual Village, Phase 7, Islamabad", city: "Islamabad", market: "PAKISTAN", status: "ONGOING", area: "200,000 sq ft", type: "Residential", category: "RESIDENTIAL", location: "bahria-intellectual-village", featured: true },
     { slug: "barari-views", name: "Barari Views", address: "Majan, Al Barari, Dubai", city: "Dubai", market: "UAE", status: "ONGOING", area: "56,000 sq ft", type: "Residential", category: "RESIDENTIAL", location: "al-barari", featured: true },
@@ -191,7 +194,7 @@ async function main() {
     { slug: "grand-gallery", name: "Grand Gallery", address: "Bahria Food Street, Phase 7, Islamabad", city: "Islamabad", market: "PAKISTAN", status: "ONGOING", area: "30,000 sq ft", type: "Mall", category: "RETAIL", location: "bahria-town-islamabad" },
     { slug: "68-high-street", name: "68 High Street", address: "Bahria Food Street, Phase 7, Islamabad", city: "Islamabad", market: "PAKISTAN", status: "COMPLETED", area: "200,000 sq ft", type: "Mall", category: "RETAIL", location: "bahria-town-islamabad" },
     { slug: "box-park", name: "Box Park", address: "Bahria Food Street, Phase 7, Islamabad", city: "Islamabad", market: "PAKISTAN", status: "COMPLETED", area: "130,000 sq ft", type: "Mall", category: "RETAIL", location: "bahria-town-islamabad" },
-    { slug: "fortunato", name: "Fortunato", address: "Jumeirah Village Circle, Dubai", city: "Dubai", market: "UAE", status: "COMPLETED", area: "650,000 sq ft", type: "Residential", category: "RESIDENTIAL", location: "jumeirah-village-circle" },
+    { slug: "fortunato", name: "Fortunato", address: "Jumeirah Village Circle, Dubai", city: "Dubai", market: "UAE", status: "COMPLETED", area: "650,000 sq ft", type: "Residential", category: "RESIDENTIAL", location: "jumeirah-village-circle", lat: 25.0654817, lng: 55.2128395 },
     { slug: "river-loft", name: "River Loft", address: "Bahria Intellectual Village, Islamabad", city: "Islamabad", market: "PAKISTAN", status: "COMPLETED", area: "252,000 sq ft", type: "Residential", category: "RESIDENTIAL", location: "bahria-intellectual-village" },
     { slug: "river-hills-1", name: "River Hills I", address: "Bahria Town Phase 7, Islamabad", city: "Islamabad", market: "PAKISTAN", status: "COMPLETED", area: "165,000 sq ft", type: "Commercial + Residential", category: "MIXED_USE", location: "bahria-town-islamabad" },
     { slug: "river-hills-2", name: "River Hills 2", address: "Bahria Town Phase 7, Islamabad", city: "Islamabad", market: "PAKISTAN", status: "COMPLETED", area: "55,000 sq ft", type: "Commercial + Residential", category: "MIXED_USE", location: "bahria-town-islamabad" },
@@ -218,6 +221,8 @@ async function main() {
         market: p.market,
         city: p.city,
         address: p.address,
+        latitude: p.lat ?? null,
+        longitude: p.lng ?? null,
         locationId: p.location ? locationIds[p.location] : null,
         overview,
         heroImageId: image,

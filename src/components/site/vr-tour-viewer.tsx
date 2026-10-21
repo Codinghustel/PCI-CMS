@@ -47,8 +47,8 @@ export function VrTourGrid({ tours, enquireHref }: { tours: VrTourItem[]; enquir
             </span>
             <span className="absolute inset-x-0 bottom-0 p-5">
               {tour.projectName ? <span className="eyebrow block">{tour.projectName}</span> : null}
-              <span className="heading mt-1 block text-2xl">{tour.title}</span>
-              {tour.unitType ? <span className="mt-1 block text-sm text-white/80">{tour.unitType}</span> : null}
+              <span className="heading mt-1 line-clamp-2 text-2xl">{tour.title}</span>
+              {tour.unitType ? <span className="mt-1 block truncate text-sm text-white/80">{tour.unitType}</span> : null}
             </span>
           </button>
         ))}

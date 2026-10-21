@@ -72,17 +72,17 @@ async function ProjectResults({ searchParams }: { searchParams: Promise<Record<s
       <div className="container-site">
         <nav aria-label="Browse projects" className="mb-12 space-y-4">
           <div className="flex flex-wrap gap-2">
-            <Link href={link({ status })} className={chip(!category)} aria-current={!category ? "page" : undefined}>All types</Link>
+            <Link scroll={false} href={link({ status })} className={chip(!category)} aria-current={!category ? "page" : undefined}>All types</Link>
             {availableCategories.map((c) => (
-              <Link key={c} href={link({ category: c, status })} className={chip(category === c)} data-track="category_browse" data-track-label={c} aria-current={category === c ? "page" : undefined}>
+              <Link scroll={false} key={c} href={link({ category: c, status })} className={chip(category === c)} data-track="category_browse" data-track-label={c} aria-current={category === c ? "page" : undefined}>
                 {PROJECT_CATEGORY_LABELS[c]}
               </Link>
             ))}
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link href={link({ category })} className={chip(!status)}>Any status</Link>
+            <Link scroll={false} href={link({ category })} className={chip(!status)}>Any status</Link>
             {CONSTRUCTION_STATUSES.map((s) => (
-              <Link key={s} href={link({ category, status: s })} className={chip(status === s)}>{CONSTRUCTION_STATUS_LABELS[s]}</Link>
+              <Link scroll={false} key={s} href={link({ category, status: s })} className={chip(status === s)}>{CONSTRUCTION_STATUS_LABELS[s]}</Link>
             ))}
           </div>
         </nav>

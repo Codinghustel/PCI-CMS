@@ -103,7 +103,7 @@ export function ProjectFinder({ title, greeting, disclaimer, consentText }: { ti
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed end-4 bottom-20 z-40 flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-xl transition hover:bg-primary/90 md:bottom-6"
+        className="flex h-13 min-w-13 items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-xl transition hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none sm:px-5"
         aria-label={`Open ${title}`}
       >
         <Sparkles className="size-4" aria-hidden />

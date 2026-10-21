@@ -9,6 +9,9 @@ import * as site from "@/server/services/site";
 import * as media from "@/server/services/media";
 import * as users from "@/server/services/users";
 import * as leads from "@/server/services/leads";
+import * as roles from "@/server/services/roles";
+import * as integrations from "@/server/services/integrations";
+import type { RoleName } from "@/lib/auth/permissions";
 import type { MediaSummary } from "@/server/services/media";
 
 // ───────── Navigation, redirects, settings, theme ─────────
@@ -111,5 +114,38 @@ export async function resendLeadAction(id: string): Promise<ActionState> {
     if (result.status === "DELIVERED") return { ok: true, message: "Delivered to Bitrix24." };
     if (result.status === "NOT_CONFIGURED") return { ok: false, message: "Bitrix24 is not configured (BITRIX24_WEBHOOK_URL)." };
     return { ok: false, message: `Delivery failed: ${"error" in result ? result.error : "unknown error"}` };
+  });
+}
+
+// ───────── Roles & permissions ─────────
+export async function updateRoleAction(input: unknown): Promise<ActionState> {
+  return runAction(async () => {
+    const result = await roles.updateRolePermissions(await requireActor(), input);
+    const changes = result.added.length + result.removed.length;
+    return { ok: true, message: changes ? `Permissions updated (${changes} change${changes === 1 ? "" : "s"}). They apply immediately.` : "No changes to save." };
+  });
+}
+
+export async function resetRoleAction(role: string): Promise<ActionState> {
+  return runAction(async () => {
+    await roles.resetRolePermissions(await requireActor(), role as RoleName);
+    return { ok: true, message: "Role reset to its default permissions." };
+  });
+}
+
+// ───────── Integrations ─────────
+export async function testBitrixAction(): Promise<ActionState> {
+  return runAction(async () => {
+    const result = await integrations.testBitrix(await requireActor());
+    return result.ok
+      ? { ok: true, message: `Connected to Bitrix24 (${result.fieldCount} lead fields available).` }
+      : { ok: false, message: `Bitrix24 connection failed: ${result.error}` };
+  });
+}
+
+export async function runLeadDeliveryAction(): Promise<ActionState> {
+  return runAction(async () => {
+    const result = await integrations.runLeadDeliveryJob("manual", await requireActor());
+    return { ok: true, message: `Delivery job finished: ${result.processed} processed, ${result.delivered} delivered.` };
   });
 }

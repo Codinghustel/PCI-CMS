@@ -25,13 +25,15 @@ import { sanitizeRichText } from "@/lib/sanitize";
 import { siteUrl } from "@/lib/env";
 
 export function ProjectDetail({ project: p, settings }: { project: PublicProject; settings: SiteSettings }) {
-  const facts: { label: string; value: string }[] = [
+  const builtIn: { label: string; value: string }[] = [
     { label: "Type", value: PROJECT_CATEGORY_LABELS[p.category] },
     { label: "Status", value: CONSTRUCTION_STATUS_LABELS[p.constructionStatus] },
     ...(p.commercial.price ? [{ label: "Starting from", value: formatPrice(p.commercial.price.amount, p.commercial.price.currency) }] : []),
     ...(p.commercial.handover ? [{ label: "Handover", value: p.commercial.handover }] : []),
-    ...p.keyFacts,
   ];
+  // Editor-entered facts override built-in ones with the same label (no duplicates).
+  const custom = new Set(p.keyFacts.map((f) => f.label.trim().toLowerCase()));
+  const facts = [...builtIn.filter((f) => !custom.has(f.label.toLowerCase())), ...p.keyFacts];
   const wa = whatsappLink(settings, `I'm interested in ${p.name}.`);
   const tel = telLink(settings.contact.phone);
   const mapQuery = p.latitude != null && p.longitude != null ? `${p.latitude},${p.longitude}` : [p.address, p.city].filter(Boolean).join(", ");
@@ -80,10 +82,10 @@ export function ProjectDetail({ project: p, settings }: { project: PublicProject
           <h1 className="text-5xl md:text-7xl">{p.name}</h1>
           <p className="mt-4 flex items-center gap-2 text-white/85"><MapPin className="size-4" aria-hidden />{[p.address, p.city].filter(Boolean).join(", ")}</p>
           {p.tagline ? <p className="mt-5 max-w-2xl text-lg text-white/85">{p.tagline}</p> : null}
-          <div className="mt-8 flex flex-wrap gap-3">
+          <div className="mt-8 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:flex sm:flex-wrap [&>*]:min-w-44">
             <a href="#enquire" className={siteButtonClass("accent", "lg")}>Enquire now</a>
             {brochure ? (
-              <DocumentDownload title="Download brochure" url={brochure.media.url} gated={brochure.gated} projectId={p.id} projectName={p.name} consentText={settings.forms.consentText} variant="button" />
+              <DocumentDownload title="Download brochure" url={brochure.media.url} gated={brochure.gated} projectId={p.id} projectName={p.name} consentText={settings.forms.consentText} variant="hero" />
             ) : null}
             {settings.payment.enabled ? (
               <Link href="/pay-my-installment" data-track="pay_installment_click" data-track-label="project_hero" data-track-project={p.name} className={siteButtonClass("outline-light", "lg")}>
@@ -107,8 +109,8 @@ export function ProjectDetail({ project: p, settings }: { project: PublicProject
       {/* Key facts */}
       <section aria-label="Key facts" className="border-b border-border bg-secondary">
         <dl className="container-site grid grid-cols-2 gap-6 py-10 md:grid-cols-3 lg:grid-cols-6">
-          {facts.slice(0, 12).map((f) => (
-            <div key={f.label}>
+          {facts.slice(0, 12).map((f, i) => (
+            <div key={`${i}-${f.label}`} className="min-w-0">
               <dt className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">{f.label}</dt>
               <dd className="heading mt-1.5 text-2xl text-secondary-foreground">{f.value}</dd>
             </div>
@@ -177,8 +179,8 @@ export function ProjectDetail({ project: p, settings }: { project: PublicProject
 
       {p.gallery.length || p.videos.length ? (
         <SectionShell id="gallery">
-          <div className="container-site space-y-12">
-            <SectionHeading eyebrow="Gallery & film" heading="Experience the project" className="mb-0!" />
+          <div className="container-site flex flex-col gap-10 md:gap-14">
+            <SectionHeading eyebrow="Gallery & film" heading="Experience the project" className="mb-0 md:mb-0" />
             {p.videos.length ? (
               <div className={p.videos.length > 1 ? "grid gap-6 md:grid-cols-2" : ""}>
                 {p.videos.map((v) => <YoutubeEmbed key={v.youtubeId} videoId={v.youtubeId} title={v.title} project={p.name} />)}

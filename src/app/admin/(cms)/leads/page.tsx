@@ -43,7 +43,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
         ]}
       />
       <Pagination page={page} pageSize={pageSize} total={total} params={{ q: sp.q, formType: sp.formType, crmStatus: sp.crmStatus }} />
-      <p className="mt-4 text-xs text-muted-foreground"><Link href="/admin/settings" className="underline">Integration status</Link> · Lead data is personal data — export only when needed and store exports securely.</p>
+      <p className="mt-4 text-xs text-muted-foreground"><Link href="/admin/settings?tab=integrations" className="underline">Integration status</Link> · Lead data is personal data — export only when needed and store exports securely.</p>
     </>
   );
 }
