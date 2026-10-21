@@ -246,7 +246,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     permissions: ["content.writeOwn", "content.write"],
     summary: "These content types use the same editor style and publishing workflow (FAQs simply have a Published switch).",
     terms: [
-      { term: "News & media", text: "News, press releases, events (with event date and location) and insights, with cover image and optional video. Authors can create articles; set a future publication date (YYYY-MM-DD HH:mm) and press Publish to schedule one." },
+      { term: "News & media", text: "News, press releases, events (with event date and location) and insights, with cover image and optional video. Authors can create articles; set a future publication date (YYYY-MM-DD HH:mm, in UTC) and press Publish to schedule one." },
       { term: "Locations", text: "Areas such as DHA Phase 1 or Al Barari: overview, hero image, map centre (latitude/longitude) and landmarks. Projects linked to a location (project Basics tab) appear on its page and map. Requires “Edit all content”." },
       { term: "Careers", text: "Vacancies with an optional closing date; applications with CVs arrive under Job applications. The “Life at PCI” text is the Careers page in Pages. Requires “Edit all content”." },
       { term: "FAQs", text: "Questions grouped by category (e.g. general, investment, payments). An FAQ block on a page shows the published FAQs of the category you choose. Requires “Edit all content”." },

@@ -153,7 +153,8 @@ function HeaderNavInner({ items, siteName, logo, logoLight, phone, tel, payment,
               <SheetHeader>
                 <SheetTitle className="font-heading text-2xl font-medium">{siteName}</SheetTitle>
               </SheetHeader>
-              <nav aria-label="Mobile" className="px-4 pb-8">
+              {/* Close on any link tap: query-only or same-page links don't change the pathname. */}
+              <nav aria-label="Mobile" className="px-4 pb-8" onClick={(e) => (e.target as HTMLElement).closest("a") && setMobileOpen(false)}>
                 <Accordion type="multiple">
                   {items.map((item) =>
                     item.children.length ? (
@@ -161,7 +162,9 @@ function HeaderNavInner({ items, siteName, logo, logoLight, phone, tel, payment,
                         <AccordionTrigger className="text-sm font-semibold tracking-[0.12em] uppercase">{item.label}</AccordionTrigger>
                         <AccordionContent>
                           <ul className="space-y-1 ps-2">
-                            <li><Link href={item.href} className="block py-2 text-sm">All {item.label}</Link></li>
+                            {item.children.some((c) => c.href === item.href) ? null : (
+                              <li><Link href={item.href} className="block py-2 text-sm">All {item.label}</Link></li>
+                            )}
                             {item.children.map((child) => (
                               <li key={child.href + child.label}>
                                 <Link href={child.href} className="block py-2 text-sm text-muted-foreground hover:text-foreground">{child.label}</Link>

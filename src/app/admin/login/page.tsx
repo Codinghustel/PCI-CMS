@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
+import { getCurrentActor } from "@/lib/auth/session";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Sign in" };
@@ -21,5 +23,7 @@ export default function LoginPage({ searchParams }: { searchParams: Promise<Reco
 
 async function LoginWithNext({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
+  // Already signed in with a live session (checked against the database, unlike the proxy).
+  if (await getCurrentActor()) redirect("/admin");
   return <LoginForm next={typeof sp.next === "string" ? sp.next : ""} />;
 }

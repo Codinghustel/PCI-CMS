@@ -161,7 +161,7 @@ export async function MobileCtaBar() {
         </a>
       ) : <span />}
       {wa ? (
-        <a href={wa} target="_blank" rel="noopener noreferrer" data-track="whatsapp_click" data-track-label="mobile_bar" className="flex flex-col items-center justify-center gap-1 text-[#128C7E]">
+        <a href={wa} target="_blank" rel="noopener noreferrer" data-track="whatsapp_click" data-track-label="mobile_bar" className="flex flex-col items-center justify-center gap-1 text-[#075E54]">
           <BrandIcon name="whatsapp" className="size-5" /> WhatsApp
         </a>
       ) : <span />}

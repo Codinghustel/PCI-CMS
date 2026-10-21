@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -17,6 +17,8 @@ export interface GalleryImage {
 /** Responsive image grid with a keyboard-accessible full-screen viewer. */
 export function Gallery({ images, layout = "grid", onOpen }: { images: GalleryImage[]; layout?: "grid" | "mosaic"; onOpen?: () => void }) {
   const [index, setIndex] = useState<number | null>(null);
+  // The viewer opens from code, so Radix has no trigger to return focus to on close.
+  const opener = useRef<HTMLButtonElement | null>(null);
   const count = images.length;
   const go = useCallback((delta: number) => setIndex((i) => (i === null ? i : (i + delta + count) % count)), [count]);
 
@@ -40,7 +42,8 @@ export function Gallery({ images, layout = "grid", onOpen }: { images: GalleryIm
           <li key={`${img.url}-${i}`} className={cn(layout === "mosaic" && i % 5 === 0 && "md:col-span-2 md:row-span-2")}>
             <button
               type="button"
-              onClick={() => {
+              onClick={(e) => {
+                opener.current = e.currentTarget;
                 setIndex(i);
                 onOpen?.();
               }}
@@ -53,7 +56,13 @@ export function Gallery({ images, layout = "grid", onOpen }: { images: GalleryIm
         ))}
       </ul>
       <Dialog open={index !== null} onOpenChange={(o) => !o && setIndex(null)}>
-        <DialogContent className="max-w-[96vw] border-none bg-black/95 p-0 text-white sm:max-w-[96vw]">
+        <DialogContent
+          className="max-w-[96vw] border-none bg-black/95 p-0 text-white sm:max-w-[96vw]"
+          onCloseAutoFocus={(e) => {
+            e.preventDefault();
+            opener.current?.focus();
+          }}
+        >
           <DialogTitle className="sr-only">Image viewer</DialogTitle>
           {current ? (
             <figure className="relative flex h-[85dvh] w-full items-center justify-center">

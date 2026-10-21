@@ -23,14 +23,15 @@ export async function buildMetadata(input: SeoInput): Promise<Metadata> {
   const { settings, media } = await getPublicSettings();
   const suffix = settings.seo.titleSuffix ? ` ${settings.seo.titleSuffix}` : "";
   const title = input.absoluteTitle ? input.title : `${input.title}${suffix}`;
-  const description = truncate(input.description || settings.seo.defaultDescription || "", 300);
+  const description = truncate(input.description || settings.seo.defaultDescription || "", 300) || undefined;
   const fallbackImage = settings.seo.defaultOgImage ? media[settings.seo.defaultOgImage] : null;
   const image = input.image ?? fallbackImage;
   const canonical = input.canonical || siteUrl(input.path);
   const index = isIndexingAllowed() && !input.noindex;
   return {
     title: { absolute: title },
-    description,
+    // Omit the key when empty so the root layout's description is inherited instead of blanked.
+    ...(description ? { description } : {}),
     alternates: { canonical },
     robots: index ? { index: true, follow: true } : { index: false, follow: false },
     openGraph: {

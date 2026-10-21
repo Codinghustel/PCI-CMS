@@ -10,6 +10,7 @@ import type { WorkflowAction } from "@/server/services/helpers";
 import * as pages from "@/server/services/pages";
 import * as projects from "@/server/services/projects";
 import * as content from "@/server/services/content";
+import { ValidationError } from "@/server/errors";
 
 // Server Actions for CMS content. Each re-authenticates, delegates to the
 // service (which enforces permissions and validation) and refreshes caches.
@@ -30,8 +31,11 @@ export async function createPageAction(input: unknown): Promise<ActionState<{ id
 export async function savePageAction(id: string, input: unknown, action: unknown, publishAt?: string | null): Promise<ActionState> {
   return runAction(async () => {
     const a = workflow(action);
-    await pages.updatePage(await requireActor(), id, input, a, publishAt ? new Date(publishAt) : null);
-    refreshPublic(TAGS.pages);
+    const scheduled = publishAt ? new Date(publishAt) : null;
+    if (scheduled && Number.isNaN(scheduled.getTime())) throw new ValidationError("Enter a valid publication date.", { publishAt: ["Enter a valid date and time."] });
+    await pages.updatePage(await requireActor(), id, input, a, scheduled);
+    // A URL change on a published page also creates a redirect.
+    refreshPublic(TAGS.pages, TAGS.redirects);
     return { ok: true, message: msg(a) };
   });
 }
@@ -83,7 +87,8 @@ export async function saveProjectAction(id: string, input: unknown, action: unkn
   return runAction(async () => {
     const a = workflow(action);
     const result = await projects.updateProject(await requireActor(), id, input, a);
-    refreshPublic(TAGS.projects);
+    // A URL change on a published project also creates a redirect.
+    refreshPublic(TAGS.projects, TAGS.redirects);
     return {
       ok: true,
       message: result?.commercialChanged ? `${msg(a)} Commercial details changed and now await Sales approval.` : msg(a),

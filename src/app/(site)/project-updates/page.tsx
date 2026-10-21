@@ -33,7 +33,8 @@ async function UpdatesList({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
   const project = typeof sp.project === "string" ? sp.project.slice(0, 100) : undefined;
   const year = typeof sp.year === "string" && /^\d{4}$/.test(sp.year) ? Number(sp.year) : undefined;
-  const page = typeof sp.page === "string" ? Math.max(1, Number(sp.page) || 1) : 1;
+  // Whole page numbers only, capped (e.g. ?page=2.5 or ?page=1e300 broke the query).
+  const page = typeof sp.page === "string" ? Math.min(1000, Math.max(1, Math.floor(Number(sp.page)) || 1)) : 1;
   const [{ items, total, pageSize, years }, projects] = await Promise.all([
     listPublishedUpdates({ projectSlug: project, year, page }),
     listProjectsWithUpdates(),

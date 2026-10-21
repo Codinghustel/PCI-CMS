@@ -25,8 +25,15 @@ const slug = z
   .min(1, "Slug is required")
   .max(96)
   .regex(SLUG_PATTERN, "Use lowercase letters, numbers and hyphens only");
+// The CMS shows dates in UTC (toDateTimeInput), so read "YYYY-MM-DD HH:mm" back as UTC too —
+// otherwise the server's local zone shifts the time on every save.
 const optionalDate = z.preprocess(
-  (v) => (v === "" || v === null || v === undefined ? null : v),
+  (v) =>
+    v === "" || v === null || v === undefined
+      ? null
+      : typeof v === "string" && /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?$/.test(v.trim())
+        ? `${v.trim().replace(" ", "T")}Z`
+        : v,
   z.coerce.date({ error: "Enter a valid date" }).nullable()
 );
 const youtube = z

@@ -120,6 +120,11 @@ describe("proxy routing decisions", () => {
     expect(decide("/home", index).kind).toBe("missing");
     expect(decide("/no-such-page", index).kind).toBe("missing");
   });
+  it("treats malformed percent-encoding and file-like paths as missing instead of throwing", () => {
+    expect(decide("/projects/%", index).kind).toBe("missing");
+    expect(decide("/media/%ZZ", index).kind).toBe("missing");
+    expect(decide("/wp-login.php", index).kind).toBe("missing");
+  });
 });
 
 describe("session tokens", () => {

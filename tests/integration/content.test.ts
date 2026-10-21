@@ -18,6 +18,8 @@ describe("pages", () => {
     const page = await createPage(editor, { title: "About", slug: "about", sections: [hero("About PCI")] });
     expect(page?.status).toBe("DRAFT");
     await expect(createPage(editor, { title: "Copy", slug: "about" })).rejects.toBeInstanceOf(ConflictError);
+    // The duplicate is reported against the slug field, so the editor can highlight it.
+    await expect(createPage(editor, { title: "Copy", slug: "about" })).rejects.toMatchObject({ fieldErrors: { slug: expect.any(Array) } });
     await expect(createPage(editor, { title: "X", slug: "projects" })).rejects.toBeInstanceOf(ValidationError);
     await expect(createPage(editor, { title: "X", slug: "Bad Slug!" })).rejects.toBeInstanceOf(ValidationError);
   });
@@ -66,6 +68,16 @@ describe("pages", () => {
     const restored = await db.page.findUniqueOrThrow({ where: { id: page.id } });
     expect(restored.title).toBe("V1");
     expect(restored.slug).toBe("our-story"); // URL is kept when restoring content
+  });
+
+  it("does not create a redirect loop when a published page's URL is changed back", async () => {
+    const editor = await makeUser("EDITOR");
+    const page = (await createPage(editor, { title: "Story", slug: "story", sections: [hero("First")] }))!;
+    await updatePage(editor, page.id, { title: "Story", slug: "story", sections: [hero("First")] }, "publish");
+    await updatePage(editor, page.id, { title: "Story", slug: "our-story", sections: [hero("First")] });
+    await updatePage(editor, page.id, { title: "Story", slug: "story", sections: [hero("First")] });
+    expect(await db.redirect.findUnique({ where: { fromPath: "/story" } })).toBeNull();
+    expect(await db.redirect.findUnique({ where: { fromPath: "/our-story" } })).toMatchObject({ toPath: "/story" });
   });
 
   it("duplicates pages as drafts and protects the homepage from deletion", async () => {
@@ -126,6 +138,22 @@ describe("projects", () => {
     const approverEditor = { ...approver };
     await db.project.update({ where: { id: p.id }, data: { updatedById: approverEditor.id } });
     await expect(reviewCommercial(approverEditor, p.id, { decision: "approve" })).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("keeps commercial approval when an unchanged payment plan is saved again", async () => {
+    const editor = await makeUser("EDITOR");
+    const approver = await makeUser("SALES_APPROVER");
+    const p = await createProject(editor, { name: "Grand Orchard", category: "RESIDENTIAL", constructionStatus: "ONGOING", market: "PAKISTAN", city: "Lahore" });
+    const input = base({
+      name: "Grand Orchard", slug: "grand-orchard", market: "PAKISTAN", city: "Lahore", priceFrom: 9000000, currency: "PKR",
+      paymentPlan: [{ milestone: "Down payment", percentage: 10, note: "" }, { milestone: "On handover", note: "Balance" }],
+    });
+    expect((await updateProject(editor, p.id, input))?.commercialChanged).toBe(true);
+    await reviewCommercial(approver, p.id, { decision: "approve" });
+
+    // jsonb stores the plan with reordered keys; an identical re-save must not reset the approval.
+    expect((await updateProject(editor, p.id, { ...input, overview: `${input.overview} Updated.` }))?.commercialChanged).toBe(false);
+    expect((await db.project.findUniqueOrThrow({ where: { id: p.id } })).commercialStatus).toBe("APPROVED");
   });
 
   it("links dated construction updates to a project", async () => {

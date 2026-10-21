@@ -1,7 +1,7 @@
 import type { z } from "zod";
 import { can, canEditItem, type Actor } from "@/lib/auth/permissions";
 import { ForbiddenError, ValidationError } from "@/server/errors";
-import type { PublishStatusValue } from "@/lib/content-labels";
+import { PUBLISH_STATUSES, type PublishStatusValue } from "@/lib/content-labels";
 
 export function parseInput<S extends z.ZodType>(schema: S, input: unknown): z.infer<S> {
   const parsed = schema.safeParse(input);
@@ -21,6 +21,11 @@ export interface ListParams {
   pageSize?: number;
   q?: string;
   status?: string;
+}
+
+/** Status filter for list queries; ignores values that are not a publish status (e.g. a hand-edited URL). */
+export function statusFilter(status: string | undefined): { status?: PublishStatusValue } {
+  return status && (PUBLISH_STATUSES as readonly string[]).includes(status) ? { status: status as PublishStatusValue } : {};
 }
 
 export function normalizeList(params: ListParams) {
@@ -79,7 +84,9 @@ export function assertCanDelete(actor: Actor, item: { authorId: string | null; s
  * date (future dates schedule publication), otherwise publish now.
  */
 export function resolvePublishedAt(status: PublishStatusValue, existing: Date | null, requested?: Date | null): Date | null {
-  if (status !== "PUBLISHED") return existing;
+  // Unpublishing a scheduled item cancels its schedule; otherwise a later "Publish" would keep the
+  // old future date and the item would stay hidden.
+  if (status !== "PUBLISHED") return existing && existing > new Date() ? null : existing;
   if (requested) return requested;
   return existing ?? new Date();
 }

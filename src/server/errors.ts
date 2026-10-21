@@ -56,12 +56,19 @@ export class RateLimitError extends AppError {
   }
 }
 
+function fieldsFromIndex(index: string | undefined, table: string | undefined): string[] | undefined {
+  if (!index || !table || !index.startsWith(`${table}_`) || !index.endsWith("_key")) return undefined;
+  return index.slice(table.length + 1, -"_key".length).split("_");
+}
+
 /** Maps Prisma known request errors to application errors. */
 export function mapPrismaError(error: unknown, uniqueFieldLabel?: Record<string, string>): never {
-  const e = error as { code?: string; meta?: { target?: string[] | string; driverAdapterError?: { cause?: { constraint?: { fields?: string[] } } } } };
+  const e = error as { code?: string; meta?: { target?: string[] | string; driverAdapterError?: { cause?: { constraint?: { fields?: string[]; index?: string }; table?: string } } } };
   if (e?.code === "P2002") {
     const target =
       e.meta?.driverAdapterError?.cause?.constraint?.fields ??
+      // The pg adapter may report only the index name, e.g. "Page_slug_key" → ["slug"].
+      fieldsFromIndex(e.meta?.driverAdapterError?.cause?.constraint?.index, e.meta?.driverAdapterError?.cause?.table) ??
       (Array.isArray(e.meta?.target) ? e.meta?.target : e.meta?.target ? [e.meta.target] : []);
     const field = (target ?? [])[0]?.replace(/"/g, "") ?? "value";
     const label = uniqueFieldLabel?.[field] ?? field;

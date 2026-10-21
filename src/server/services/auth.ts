@@ -58,11 +58,15 @@ export async function login(input: unknown, meta: LoginMeta) {
     throw new UnauthorizedError(GENERIC_LOGIN_ERROR);
   }
 
+  const ok = await verifyPassword(user.passwordHash, password);
+
+  // Only reveal the lock to someone who knows the password; otherwise a locked account would be
+  // distinguishable from an unknown email.
   if (user.lockedUntil && user.lockedUntil > new Date()) {
+    if (!ok) throw new UnauthorizedError(GENERIC_LOGIN_ERROR);
     throw new UnauthorizedError("This account is temporarily locked after repeated failed sign-in attempts. Try again later.");
   }
 
-  const ok = await verifyPassword(user.passwordHash, password);
   if (!ok || !user.isActive) {
     if (!ok) {
       const failed = user.failedLoginCount + 1;

@@ -53,6 +53,10 @@ describe("publishing workflow", () => {
     const future = new Date("2027-01-01T00:00:00Z");
     expect(resolvePublishedAt("PUBLISHED", null, future)).toBe(future);
     expect(resolvePublishedAt("DRAFT", null)).toBeNull();
+    // Unpublishing a scheduled item clears the schedule, so publishing again goes live now.
+    expect(resolvePublishedAt("DRAFT", future)).toBeNull();
+    expect(resolvePublishedAt("DRAFT", existing)).toBe(existing);
+    expect(resolvePublishedAt("PUBLISHED", future)).toBe(future); // an edit keeps the schedule
   });
 });
 
@@ -78,6 +82,9 @@ describe("text utilities", () => {
     expect(isSafeHref("tel:+971")).toBe(true);
     expect(isSafeHref("javascript:alert(1)")).toBe(false);
     expect(isSafeHref("//evil.com")).toBe(false);
+    expect(isSafeHref("/\\evil.com")).toBe(false);
+    expect(isSafeHref("/\t/evil.com")).toBe(false);
+    expect(isSafeHref("/projects/grand-orchard?tab=updates#plan")).toBe(true);
   });
   it("reserves application routes", () => {
     expect(isReservedPageSlug("projects")).toBe(true);

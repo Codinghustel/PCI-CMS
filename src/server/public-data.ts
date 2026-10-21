@@ -183,7 +183,7 @@ export async function listPublishedProjects(filter: { category?: ProjectCategory
 export async function getPublishedProject(slug: string) {
   "use cache";
   cacheLife("content");
-  cacheTag(TAGS.site, TAGS.projects, TAGS.updates);
+  cacheTag(TAGS.site, TAGS.projects, TAGS.updates, TAGS.locations);
   return loadProjectView({ slug });
 }
 
@@ -402,7 +402,7 @@ export async function listActiveVrTours(limit?: number) {
 export async function listPublishedLocations() {
   "use cache";
   cacheLife("content");
-  cacheTag(TAGS.site, TAGS.locations);
+  cacheTag(TAGS.site, TAGS.locations, TAGS.projects); // counts live projects
   const rows = await db.location.findMany({
     where: live(),
     orderBy: { name: "asc" },

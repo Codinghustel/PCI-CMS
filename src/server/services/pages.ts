@@ -10,6 +10,7 @@ import {
   normalizeList,
   parseInput,
   resolvePublishedAt,
+  statusFilter,
   type ListParams,
   type WorkflowAction,
 } from "@/server/services/helpers";
@@ -19,14 +20,13 @@ import { sanitizeRichText } from "@/lib/sanitize";
 import { isReservedPageSlug } from "@/lib/text";
 import { MAX_PAGE_REVISIONS } from "@/lib/limits";
 import type { Actor } from "@/lib/auth/permissions";
-import type { PublishStatusValue } from "@/lib/content-labels";
 
 const MAX_REVISIONS = MAX_PAGE_REVISIONS;
 
 export async function listPages(params: ListParams) {
   const { skip, take, q, page, pageSize } = normalizeList(params);
   const where: Prisma.PageWhereInput = {
-    ...(params.status ? { status: params.status as PublishStatusValue } : {}),
+    ...statusFilter(params.status),
     ...(q ? { OR: [{ title: { contains: q, mode: "insensitive" } }, { slug: { contains: q, mode: "insensitive" } }] } : {}),
   };
   const [items, total] = await Promise.all([
@@ -147,6 +147,8 @@ export async function updatePage(actor: Actor, id: string, input: unknown, actio
 
       // Preserve SEO equity: when a published page's URL changes, redirect the old URL.
       if (existing.status === "PUBLISHED" && previousSlug !== page.slug) {
+        // The page now lives at the new URL, so an older redirect away from it would loop or hide it.
+        await tx.redirect.deleteMany({ where: { fromPath: `/${page.slug}` } });
         await tx.redirect.upsert({
           where: { fromPath: `/${previousSlug}` },
           update: { toPath: `/${page.slug}`, permanent: true },

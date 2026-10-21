@@ -48,7 +48,7 @@ export const articleFields: FieldDef[] = [
   { type: "youtube", name: "youtubeId", label: "Video (YouTube)" },
   { type: "text", name: "eventDate", label: "Event date (YYYY-MM-DD, events only)", maxLength: 10 },
   { type: "text", name: "eventLocation", label: "Event location", maxLength: 200 },
-  { type: "text", name: "publishedAt", label: "Publication date (YYYY-MM-DD HH:mm, optional)", maxLength: 16, help: "A future date schedules the article when you press Publish." },
+  { type: "text", name: "publishedAt", label: "Publication date (YYYY-MM-DD HH:mm UTC, optional)", maxLength: 16, help: "A future date schedules the article when you press Publish." },
   { type: "text", name: "seoTitle", label: "SEO title", maxLength: 70 },
   { type: "textarea", name: "seoDescription", label: "Meta description", maxLength: 300 },
 ];

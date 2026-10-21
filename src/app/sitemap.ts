@@ -5,9 +5,11 @@ import { siteUrl } from "@/lib/env";
 /** XML sitemap of published, indexable content. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const e = await getSitemapEntries();
-  const fixed = ["/projects", "/project-updates", "/locations", "/vr-tours", "/media", "/careers"].map((p) => ({ url: siteUrl(p) }));
+  const fixedPaths = ["/projects", "/project-updates", "/locations", "/vr-tours", "/media", "/careers"];
+  const fixed = fixedPaths.map((p) => ({ url: siteUrl(p) }));
   return [
-    ...e.pages.map((p) => ({ url: siteUrl(p.slug === "home" ? "/" : `/${p.slug}`), lastModified: p.updatedAt, priority: p.slug === "home" ? 1 : 0.6 })),
+    // A CMS page may share a fixed route's URL (e.g. "careers"); list it once.
+    ...e.pages.filter((p) => !fixedPaths.includes(`/${p.slug}`)).map((p) => ({ url: siteUrl(p.slug === "home" ? "/" : `/${p.slug}`), lastModified: p.updatedAt, priority: p.slug === "home" ? 1 : 0.6 })),
     ...fixed,
     ...e.projects.map((p) => ({ url: siteUrl(`/projects/${p.slug}`), lastModified: p.updatedAt, priority: 0.9 })),
     ...e.updates.map((u) => ({ url: siteUrl(`/project-updates/${u.slug}`), lastModified: u.updatedAt, priority: 0.5 })),

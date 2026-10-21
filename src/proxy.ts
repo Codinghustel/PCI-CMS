@@ -30,6 +30,11 @@ export async function proxy(request: NextRequest) {
     const target = decision.to.startsWith("/") ? new URL(decision.to + request.nextUrl.search, request.url) : new URL(decision.to);
     return NextResponse.redirect(target, decision.permanent ? 301 : 302);
   }
+  // Slugs and routes are lowercase, but routing decisions ignore case: send "/Projects" to
+  // "/projects" rather than letting it fall through to a soft 404 or a duplicate URL.
+  if (decision.kind === "pass" && pathname !== pathname.toLowerCase()) {
+    return NextResponse.redirect(new URL(pathname.toLowerCase() + request.nextUrl.search, request.url), 301);
+  }
   if (decision.kind === "missing") {
     const url = request.nextUrl.clone();
     url.pathname = "/page-not-found";
@@ -55,7 +60,10 @@ async function adminProxy(request: NextRequest) {
     return res;
   }
 
-  if (isLogin) return NextResponse.redirect(new URL("/admin", request.url));
+  // The token's signature is valid, but its session may have been revoked (password reset, role
+  // change, deactivation). Only the login page's database check may send the user on to /admin —
+  // redirecting here would loop with the CMS layout, which sends revoked sessions back to login.
+  if (isLogin) return NextResponse.next();
 
   const res = NextResponse.next();
   const now = Math.floor(Date.now() / 1000);
@@ -67,6 +75,7 @@ async function adminProxy(request: NextRequest) {
 }
 
 export const config = {
-  // Everything except API routes, uploads, Next internals and files with an extension.
-  matcher: ["/((?!api/|uploads/|_next/|.*\\.[a-zA-Z0-9]+$).*)"],
+  // Everything except API routes, uploads, Next internals and the generated root files. Other
+  // paths with an extension (e.g. /wp-login.php) must reach the routing index to get a real 404.
+  matcher: ["/((?!api/|uploads/|_next/|favicon\\.ico$|robots\\.txt$|sitemap\\.xml$).*)"],
 };

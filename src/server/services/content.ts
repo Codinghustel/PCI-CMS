@@ -10,6 +10,7 @@ import {
   normalizeList,
   parseInput,
   resolvePublishedAt,
+  statusFilter,
   type ListParams,
   type WorkflowAction,
 } from "@/server/services/helpers";
@@ -23,7 +24,7 @@ import {
 import { sanitizeRichText } from "@/lib/sanitize";
 import { can, type Actor } from "@/lib/auth/permissions";
 import { ForbiddenError } from "@/server/errors";
-import type { PublishStatusValue } from "@/lib/content-labels";
+import { ARTICLE_CATEGORIES } from "@/lib/content-labels";
 
 // Services for the simpler content types: construction updates, locations,
 // media articles, vacancies and FAQs. Same workflow rules as pages/projects.
@@ -35,7 +36,7 @@ const SLUG_LABEL = { slug: "URL slug" };
 export async function listProjectUpdates(params: ListParams & { projectId?: string }) {
   const { skip, take, q, page, pageSize } = normalizeList(params);
   const where: Prisma.ProjectUpdateWhereInput = {
-    ...(params.status ? { status: params.status as PublishStatusValue } : {}),
+    ...statusFilter(params.status),
     ...(params.projectId ? { projectId: params.projectId } : {}),
     ...(q ? { title: { contains: q, mode: "insensitive" } } : {}),
   };
@@ -168,8 +169,10 @@ export async function listLocationOptions() {
 export async function listArticles(params: ListParams & { category?: string }) {
   const { skip, take, q, page, pageSize } = normalizeList(params);
   const where: Prisma.ArticleWhereInput = {
-    ...(params.status ? { status: params.status as PublishStatusValue } : {}),
-    ...(params.category ? { category: params.category as Prisma.ArticleWhereInput["category"] & string } : {}),
+    ...statusFilter(params.status),
+    ...(params.category && (ARTICLE_CATEGORIES as readonly string[]).includes(params.category)
+      ? { category: params.category as (typeof ARTICLE_CATEGORIES)[number] }
+      : {}),
     ...(q ? { title: { contains: q, mode: "insensitive" } } : {}),
   };
   const [items, total] = await Promise.all([

@@ -112,7 +112,13 @@ export async function replaceMediaFile(actor: Actor, id: string, input: UploadIn
   let data = input.data;
   let width = existing.width;
   let height = existing.height;
-  if (type.kind === "IMAGE") ({ data, width, height } = await processImage(input.data, type));
+  if (type.kind === "IMAGE") {
+    try {
+      ({ data, width, height } = await processImage(input.data, type));
+    } catch {
+      throw new ValidationError("The image could not be read. It may be corrupted.");
+    }
+  }
   await publicStorage().put(existing.storageKey, data);
   const media = await db.media.update({
     where: { id },
@@ -140,7 +146,7 @@ export async function updateMediaMeta(actor: Actor, id: string, input: unknown) 
 
 /** Where a media item is referenced. Used to prevent breaking live content. */
 export async function mediaUsage(id: string) {
-  const [relations, sectionPages] = await Promise.all([
+  const [relations, sectionPages, settings] = await Promise.all([
     db.media.findUnique({
       where: { id },
       select: {
@@ -155,11 +161,15 @@ export async function mediaUsage(id: string) {
     }),
     // Page sections are JSON; look for the id inside them (parameterised query).
     db.$queryRaw<{ title: string }[]>`SELECT "title" FROM "Page" WHERE "sections"::text LIKE ${"%" + id + "%"} LIMIT 10`,
+    // Site settings (logos, default social image) are JSON too.
+    db.siteSettings.findUnique({ where: { id: "default" }, select: { data: true } }),
   ]);
   if (!relations) throw new NotFoundError("File not found");
   const counts = relations._count as Record<string, number>;
   const relationCount = Object.values(counts).reduce((a, b) => a + b, 0);
-  return { relationCount, pages: sectionPages.map((p) => p.title) };
+  const pages = sectionPages.map((p) => p.title);
+  if (settings && JSON.stringify(settings.data).includes(`"${id}"`)) pages.push("Site settings (logo / social image)");
+  return { relationCount, pages };
 }
 
 export async function deleteMedia(actor: Actor, id: string) {

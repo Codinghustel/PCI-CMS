@@ -29,6 +29,7 @@ export const RESERVED_PAGE_SLUGS = [
   "careers",
   "pay-my-installment",
   "thank-you",
+  "page-not-found",
   "sitemap.xml",
   "robots.txt",
   "_next",
@@ -120,7 +121,9 @@ export function formatDate(date: Date | string | null | undefined, style: "long"
 /** Validates internal ("/path") or absolute http(s) links; rejects javascript: etc. */
 export function isSafeHref(href: string): boolean {
   if (!href) return false;
-  if (href.startsWith("/") && !href.startsWith("//")) return true;
+  // Browsers treat "\" as "/" and drop tabs/newlines, so "/\evil.example" would leave the site.
+  if (/[\\\u0000-\u001f\u007f]/.test(href)) return false;
+  if (href.startsWith("/")) return new URL(href, "https://internal.invalid").origin === "https://internal.invalid";
   if (href.startsWith("#")) return true;
   if (/^(mailto|tel):/i.test(href)) return true;
   try {

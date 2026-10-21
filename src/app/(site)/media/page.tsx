@@ -29,7 +29,8 @@ export default function MediaPage({ searchParams }: { searchParams: SP }) {
 async function Articles({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
   const category = (Object.entries(ARTICLE_CATEGORY_SLUGS) as [ArticleCategoryValue, string][]).find(([, s]) => s === sp.category)?.[0];
-  const page = typeof sp.page === "string" ? Math.max(1, Number(sp.page) || 1) : 1;
+  // Whole page numbers only, capped (e.g. ?page=2.5 or ?page=1e300 broke the query).
+  const page = typeof sp.page === "string" ? Math.min(1000, Math.max(1, Math.floor(Number(sp.page)) || 1)) : 1;
   const { items, total, pageSize } = await listPublishedArticles({ category, page });
   const pages = Math.ceil(total / pageSize);
   const href = (c?: ArticleCategoryValue, p?: number) => {

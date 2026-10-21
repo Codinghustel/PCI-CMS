@@ -42,6 +42,11 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
+      // The global CSP above would replace the uploads route's own "sandbox" CSP for PDFs; keep both.
+      {
+        source: "/uploads/:path(.*\\.pdf)",
+        headers: [{ key: "Content-Security-Policy", value: `sandbox; ${securityHeaders.find((h) => h.key === "Content-Security-Policy")!.value}` }],
+      },
       { source: "/admin/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }, { key: "Cache-Control", value: "no-store" }] },
     ];
   },

@@ -101,7 +101,13 @@ export function decide(pathname: string, index: RoutingIndex): RouteDecision {
     careers: index.vacancies,
   };
   if (first in detail) {
-    return second && rest.length === 0 && detail[first].has(decodeURIComponent(second)) ? { kind: "pass" } : { kind: "missing" };
+    let slug: string;
+    try {
+      slug = decodeURIComponent(second ?? "");
+    } catch {
+      return { kind: "missing" }; // malformed percent-encoding (e.g. "/projects/%")
+    }
+    return slug && rest.length === 0 && detail[first].has(slug) ? { kind: "pass" } : { kind: "missing" };
   }
   const slug = path.slice(1);
   return index.pages.has(slug) && slug !== "home" ? { kind: "pass" } : { kind: "missing" };

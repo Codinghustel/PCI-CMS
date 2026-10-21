@@ -58,7 +58,8 @@ async function main() {
   const credentials: [string, string, string][] = [["ADMIN", adminEmail, adminPassword]];
 
   if (process.env.NODE_ENV !== "production" && process.env.SEED_DEMO_USERS !== "false") {
-    const demoPassword = process.env.SEED_DEMO_PASSWORD ?? adminPassword;
+    // Never reuse the admin password: demo logins are handed to testers.
+    const demoPassword = process.env.SEED_DEMO_PASSWORD || `Pci-${crypto.randomBytes(9).toString("base64url")}9d`;
     for (const [role, name] of [["EDITOR", "Marketing Editor"], ["AUTHOR", "Content Author"], ["SALES_APPROVER", "Sales Approver"], ["VIEWER", "Lead Viewer"]] as const) {
       const email = `${role.toLowerCase().replace("_", "-")}@pci-orbit.local`;
       await db.user.upsert({ where: { email }, update: {}, create: { email, name, role, passwordHash: await hashPassword(demoPassword) } });

@@ -10,13 +10,14 @@ import {
   normalizeList,
   parseInput,
   resolvePublishedAt,
+  statusFilter,
   type ListParams,
   type WorkflowAction,
 } from "@/server/services/helpers";
 import { projectInputSchema, type ProjectInput } from "@/lib/validation/content";
 import { sanitizeRichText } from "@/lib/sanitize";
 import { can, type Actor } from "@/lib/auth/permissions";
-import { CONSTRUCTION_STATUSES, MARKETS, PROJECT_CATEGORIES, type PublishStatusValue } from "@/lib/content-labels";
+import { CONSTRUCTION_STATUSES, MARKETS, PROJECT_CATEGORIES } from "@/lib/content-labels";
 import { slugify } from "@/lib/text";
 import { z } from "zod";
 
@@ -35,7 +36,7 @@ export const projectEditInclude = {
 export async function listProjects(params: ListParams & { category?: string }) {
   const { skip, take, q, page, pageSize } = normalizeList(params);
   const where: Prisma.ProjectWhereInput = {
-    ...(params.status ? { status: params.status as PublishStatusValue } : {}),
+    ...statusFilter(params.status),
     ...(params.category && (PROJECT_CATEGORIES as readonly string[]).includes(params.category)
       ? { category: params.category as (typeof PROJECT_CATEGORIES)[number] }
       : {}),
@@ -104,8 +105,24 @@ export async function createProject(actor: Actor, input: unknown) {
 /** Fields whose change requires fresh commercial approval. */
 const COMMERCIAL_KEYS = ["priceFrom", "currency", "handover", "paymentPlanSummary", "paymentPlan"] as const;
 
+// jsonb reorders object keys, while Zod output keeps schema order and may omit optional keys —
+// so compare a canonical form (sorted keys, null/undefined entries removed).
+function canonical(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value && typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    return Object.fromEntries(
+      Object.keys(obj)
+        .filter((k) => obj[k] != null)
+        .sort()
+        .map((k) => [k, canonical(obj[k])]),
+    );
+  }
+  return value ?? null;
+}
+
 function commercialFingerprint(p: Pick<ProjectInput, (typeof COMMERCIAL_KEYS)[number]>) {
-  return JSON.stringify(COMMERCIAL_KEYS.map((k) => p[k] ?? null));
+  return JSON.stringify(COMMERCIAL_KEYS.map((k) => canonical(p[k] ?? null)));
 }
 
 type PublishCheckable = {
@@ -219,6 +236,8 @@ export async function updateProject(actor: Actor, id: string, input: unknown, ac
       }
 
       if (existing.status === "PUBLISHED" && existing.slug !== project.slug) {
+        // The project now lives at the new URL, so an older redirect away from it would loop or hide it.
+        await tx.redirect.deleteMany({ where: { fromPath: `/projects/${project.slug}` } });
         await tx.redirect.upsert({
           where: { fromPath: `/projects/${existing.slug}` },
           update: { toPath: `/projects/${project.slug}` },

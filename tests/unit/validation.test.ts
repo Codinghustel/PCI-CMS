@@ -3,7 +3,8 @@ import { validateSections, newSection } from "@/lib/sections/registry";
 import { sanitizeRichText } from "@/lib/sanitize";
 import { contrastRatio, contrastWarnings, DEFAULT_THEME, resolveTheme, themeSchema, themeToCss } from "@/lib/theme";
 import { leadInputSchema } from "@/lib/validation/leads";
-import { normalizePath, projectInputSchema, redirectInputSchema } from "@/lib/validation/content";
+import { articleInputSchema, normalizePath, projectInputSchema, redirectInputSchema } from "@/lib/validation/content";
+import { toDateTimeInput } from "@/lib/admin-fields";
 import { resolveSettings } from "@/lib/settings";
 
 describe("page builder sections", () => {
@@ -95,6 +96,11 @@ describe("content validation", () => {
     expect(plan.success).toBe(false);
     expect(projectInputSchema.safeParse({ ...baseProject, priceFrom: 1000000 }).success).toBe(false);
     expect(projectInputSchema.safeParse({ ...baseProject, priceFrom: 1000000, currency: "PKR" }).success).toBe(true);
+  });
+  it("reads CMS date-times as UTC so re-saving never shifts them", () => {
+    const parsed = articleInputSchema.parse({ title: "T", slug: "t", category: "NEWS", publishedAt: "2026-12-01 10:00" });
+    expect(parsed.publishedAt?.toISOString()).toBe("2026-12-01T10:00:00.000Z");
+    expect(toDateTimeInput(parsed.publishedAt)).toBe("2026-12-01 10:00");
   });
   it("requires https VR embeds", () => {
     expect(projectInputSchema.safeParse({ ...baseProject, vrTours: [{ title: "T", embedUrl: "http://vr.example.com/x" }] }).success).toBe(false);

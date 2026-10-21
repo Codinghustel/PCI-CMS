@@ -42,6 +42,10 @@ describe("authentication", () => {
     const user = await makeUser("EDITOR");
     for (let i = 0; i < 5; i++) await login({ email: user.email, password: "wrong" }, meta()).catch(() => {});
     await expect(login({ email: user.email, password: user.password }, meta())).rejects.toThrow(/locked/);
+    // A wrong password does not reveal the lock (it would show the account exists).
+    const locked = await login({ email: user.email, password: "wrong" }, meta()).catch((e) => e);
+    const unknown = await login({ email: "nobody@example.com", password: "wrong" }, meta()).catch((e) => e);
+    expect(locked.message).toBe(unknown.message);
   });
 
   it("invalidates sessions of deactivated users", async () => {
@@ -113,6 +117,18 @@ describe("media uploads", () => {
     const media = await uploadMedia(editor, { data: png, originalName: "x.png", alt: "x" });
     await db.page.create({ data: { title: "P", slug: "p", featuredImageId: media.id } });
     await expect(deleteMedia(editor, media.id)).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it("refuses to delete the site logo", async () => {
+    const editor = await makeUser("EDITOR");
+    const png = await sharp({ create: { width: 10, height: 10, channels: 3, background: "#000" } }).png().toBuffer();
+    const media = await uploadMedia(editor, { data: png, originalName: "logo.png", alt: "Logo" });
+    await db.siteSettings.upsert({
+      where: { id: "default" },
+      update: { data: { general: { logo: media.id } } },
+      create: { id: "default", data: { general: { logo: media.id } } },
+    });
+    await expect(deleteMedia(editor, media.id)).rejects.toThrow(/Site settings/);
   });
 });
 
