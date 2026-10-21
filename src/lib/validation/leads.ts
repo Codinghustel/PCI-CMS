@@ -60,6 +60,7 @@ export type LeadInput = z.infer<typeof leadInputSchema>;
 
 export const paymentRequestExtraSchema = z.object({
   bookingReference: z.string().trim().min(2, "Enter your booking or customer reference").max(60),
-  unitReference: z.string().trim().max(60).optional().default(""),
+  project: z.string().trim().min(1, "Select your project").max(120),
+  unitNumber: z.string().trim().min(1, "Enter your unit number as shown on your booking form or SPA").max(60),
   purpose: z.string().trim().max(200).optional().default("Installment payment"),
 });

@@ -5,7 +5,7 @@ import { PageHero } from "@/components/site/page-hero";
 import { LeadForm } from "@/components/site/lead-form";
 import { PaymentStartForm } from "@/components/site/payment-start-form";
 import { TrackView } from "@/components/site/project-widgets";
-import { getPublicSettings } from "@/server/public-data";
+import { getPublicSettings, listPublishedProjects } from "@/server/public-data";
 import { paymentMode } from "@/server/services/payments";
 import { buildMetadata } from "@/lib/seo";
 import { sanitizeRichText } from "@/lib/sanitize";
@@ -63,6 +63,7 @@ async function PaymentEntry({ consentText }: { consentText: string }) {
       </div>
     );
   }
+  const projects = await listPublishedProjects();
   return (
     <div className="border border-border p-6 md:p-8">
       <h2 className="mb-2 text-3xl">Request a secure payment link</h2>
@@ -76,7 +77,14 @@ async function PaymentEntry({ consentText }: { consentText: string }) {
         successMessage="Thank you — our Finance team will verify your details and send your secure payment link."
         extraFields={[
           { name: "bookingReference", label: "Booking / customer reference", required: true, maxLength: 60 },
-          { name: "unitReference", label: "Project and unit number", maxLength: 60 },
+          { name: "project", label: "Project", required: true, placeholder: "Select your project", options: [...projects.map((p) => p.name), "Other"] },
+          {
+            name: "unitNumber",
+            label: "Unit number",
+            required: true,
+            maxLength: 60,
+            help: "Enter the unit number exactly as it appears on your booking form or SPA (Sale and Purchase Agreement).",
+          },
           { name: "purpose", label: "Payment purpose (e.g. installment due in March)", maxLength: 200 },
         ]}
         showMessage

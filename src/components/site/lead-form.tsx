@@ -17,6 +17,10 @@ export interface ExtraField {
   required?: boolean;
   placeholder?: string;
   maxLength?: number;
+  /** Shown under the field. */
+  help?: string;
+  /** Renders a dropdown instead of a text input. */
+  options?: string[];
 }
 
 interface LeadFormProps {
@@ -149,6 +153,10 @@ export function LeadForm({
         {errors[name][0]}
       </p>
     ) : null;
+  const extraDescribedBy = (f: ExtraField) => {
+    const errorKey = errors[`extra.${f.name}`] ? `extra.${f.name}` : errors[f.name] ? f.name : null;
+    return cn(errorKey && `${id}-${errorKey}-error`, f.help && `${id}-${f.name}-help`) || undefined;
+  };
   const labelCls = cn("mb-1.5 text-xs font-semibold tracking-wide uppercase", tone === "dark" && "text-dark-foreground/80");
   const inputCls = cn("h-11 rounded-none bg-background", tone === "dark" && "border-white/25 bg-white/5 text-dark-foreground placeholder:text-white/40");
 
@@ -187,7 +195,38 @@ export function LeadForm({
             {f.label}
             {f.required ? " *" : ""}
           </Label>
-          <Input {...field(f.name)} required={f.required} placeholder={f.placeholder} maxLength={f.maxLength ?? 200} className={inputCls} />
+          {f.options ? (
+            <select
+              {...field(f.name)}
+              required={f.required}
+              defaultValue=""
+              aria-describedby={extraDescribedBy(f)}
+              className={cn("flex w-full border border-input px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring", inputCls, tone === "dark" && "[&>option]:text-foreground")}
+            >
+              <option value="" disabled>
+                {f.placeholder ?? "Select…"}
+              </option>
+              {f.options.map((o) => (
+                <option key={o} value={o}>
+                  {o}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <Input
+              {...field(f.name)}
+              required={f.required}
+              placeholder={f.placeholder}
+              maxLength={f.maxLength ?? 200}
+              aria-describedby={extraDescribedBy(f)}
+              className={inputCls}
+            />
+          )}
+          {f.help ? (
+            <p id={`${id}-${f.name}-help`} className={cn("mt-1.5 text-xs text-muted-foreground", tone === "dark" && "text-dark-foreground/70")}>
+              {f.help}
+            </p>
+          ) : null}
           {error(`extra.${f.name}`) ?? error(f.name)}
         </div>
       ))}

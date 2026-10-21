@@ -127,6 +127,20 @@ describe("lead capture and CRM delivery", () => {
     expect((await db.lead.findUniqueOrThrow({ where: { id: stored.id } })).crmStatus).toBe("NOT_CONFIGURED");
   });
 
+  it("requires a project and unit number on payment requests and links the project", async () => {
+    const project = await db.project.create({ data: { name: "Hilton Garden Inn", slug: "hgi", category: "MIXED_USE", constructionStatus: "ONGOING", market: "PAKISTAN", city: "Lahore", status: "PUBLISHED" } });
+    const payment = { ...lead, formType: "PAYMENT_REQUEST", extra: { bookingReference: "PCI-1001", project: "Hilton Garden Inn", unitNumber: "" } };
+    await expect(submitLead(payment, meta())).rejects.toBeInstanceOf(ValidationError);
+    await expect(submitLead({ ...payment, extra: { ...payment.extra, project: "", unitNumber: "A-1204" } }, meta())).rejects.toBeInstanceOf(ValidationError);
+
+    const stored = await submitLead({ ...payment, extra: { ...payment.extra, unitNumber: " A-1204 " } }, meta());
+    expect(stored.projectId).toBe(project.id);
+    expect(stored.extra).toMatchObject({ project: "Hilton Garden Inn", unitNumber: "A-1204" });
+
+    const other = await submitLead({ ...payment, extra: { ...payment.extra, project: "Other", unitNumber: "B-7" } }, meta());
+    expect(other.projectId).toBeNull();
+  });
+
   it("rejects bot submissions (honeypot / instant submit) and rate limits", async () => {
     await expect(submitLead({ ...lead, website: "spam" }, meta())).rejects.toBeInstanceOf(ValidationError);
     await expect(submitLead({ ...lead, startedAt: Date.now() }, meta())).rejects.toBeInstanceOf(ValidationError);

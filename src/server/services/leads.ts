@@ -44,8 +44,13 @@ export async function submitLead(input: unknown, meta: SubmissionMeta) {
     extra = { ...extra, ...parseInput(paymentRequestExtraSchema, data.extra) };
   }
 
-  const project = data.projectId
-    ? await db.project.findFirst({ where: { id: data.projectId, status: "PUBLISHED" }, select: { id: true, name: true } })
+  // Payment requests pick their project by name from a dropdown; link it when it matches a published project.
+  const projectName = !data.projectId && typeof extra.project === "string" ? extra.project : "";
+  const project = data.projectId || projectName
+    ? await db.project.findFirst({
+        where: { ...(data.projectId ? { id: data.projectId } : { name: projectName }), status: "PUBLISHED" },
+        select: { id: true, name: true },
+      })
     : null;
   const settings = await getSettings();
 
