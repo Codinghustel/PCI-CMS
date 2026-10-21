@@ -22,7 +22,15 @@ export default async function LocationsList({ searchParams }: { searchParams: Pr
         columns={[
           { header: "Name", cell: (r) => r.name },
           { header: "City", cell: (r) => r.city },
-          { header: "Projects", cell: (r) => r._count.projects },
+          {
+            header: "Projects",
+            cell: (r) => (
+              <span title="Live projects appear on the public location page. Drafts, projects in review, archived and scheduled projects do not.">
+                {r.projectCounts.live} live
+                {r.projectCounts.notLive ? <span className="text-muted-foreground"> · {r.projectCounts.notLive} not live</span> : null}
+              </span>
+            ),
+          },
           { header: "Status", cell: (r) => <StatusBadge status={r.status} /> },
         ]}
       />

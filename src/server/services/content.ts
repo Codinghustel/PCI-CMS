@@ -104,10 +104,20 @@ export async function listLocations(params: ListParams) {
   const { skip, take, q, page, pageSize } = normalizeList(params);
   const where: Prisma.LocationWhereInput = q ? { name: { contains: q, mode: "insensitive" } } : {};
   const [items, total] = await Promise.all([
-    db.location.findMany({ where, orderBy: { name: "asc" }, skip, take, include: { _count: { select: { projects: true } } } }),
+    db.location.findMany({ where, orderBy: { name: "asc" }, skip, take, include: { projects: { select: { status: true, publishedAt: true } } } }),
     db.location.count({ where }),
   ]);
-  return { items, total, page, pageSize };
+  // "Live" matches what the public location page shows: published with a publish date that has passed.
+  const now = new Date();
+  return {
+    items: items.map(({ projects, ...l }) => {
+      const live = projects.filter((p) => p.status === "PUBLISHED" && p.publishedAt && p.publishedAt <= now).length;
+      return { ...l, projectCounts: { live, notLive: projects.length - live } };
+    }),
+    total,
+    page,
+    pageSize,
+  };
 }
 
 export async function getLocationForEdit(id: string) {
