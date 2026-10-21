@@ -137,3 +137,19 @@ describe("session tokens", () => {
     expect(Math.floor(expiresAt.getTime() / 1000)).toBe(abs);
   });
 });
+
+describe("redirect precedence (documented in the user guide)", () => {
+  it("applies a redirect even when a published page exists at the same address", () => {
+    const index: RoutingIndex = {
+      loadedAt: Date.now(),
+      redirects: new Map([["/about", { to: "/about-pci", permanent: true }]]),
+      pages: new Set(["about"]),
+      projects: new Set(),
+      updates: new Set(),
+      locations: new Set(),
+      articles: new Set(),
+      vacancies: new Set(),
+    };
+    expect(decide("/about", index)).toEqual({ kind: "redirect", to: "/about-pci", permanent: true });
+  });
+});

@@ -1,0 +1,17 @@
+node_modules
+.next
+.next-e2e
+.pgdata
+.env
+.env.*
+!.env.example
+storage
+storage-e2e
+test-results
+playwright-report
+coverage
+src/generated
+tsconfig.tsbuildinfo
+*.log
+Dockerfile
+.dockerignore

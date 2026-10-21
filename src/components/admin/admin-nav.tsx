@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BookOpen,
   Building2,
   CalendarClock,
   ClipboardList,
@@ -32,8 +33,15 @@ import { logoutAction } from "@/app/admin/actions/auth";
 import { ROLE_LABELS, type Permission } from "@/lib/auth/permissions";
 import { cn } from "@/lib/utils";
 
-const NAV: { heading: string; items: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; permission: Permission }[] }[] = [
-  { heading: "Overview", items: [{ href: "/admin", label: "Dashboard", icon: Gauge, permission: "dashboard.view" }] },
+const NAV: { heading: string; items: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; permission?: Permission }[] }[] = [
+  {
+    heading: "Overview",
+    items: [
+      { href: "/admin", label: "Dashboard", icon: Gauge, permission: "dashboard.view" },
+      // Available to every signed-in user.
+      { href: "/admin/guide", label: "User guide", icon: BookOpen },
+    ],
+  },
   {
     heading: "Content",
     items: [
@@ -80,7 +88,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
       </div>
       <nav aria-label="CMS" className="flex-1 space-y-6 overflow-y-auto px-3 py-5">
         {NAV.map((group) => {
-          const items = group.items.filter((i) => can(i.permission));
+          const items = group.items.filter((i) => !i.permission || can(i.permission));
           if (!items.length) return null;
           return (
             <div key={group.heading}>

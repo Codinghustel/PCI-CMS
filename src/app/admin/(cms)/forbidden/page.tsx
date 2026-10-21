@@ -8,7 +8,10 @@ export default function ForbiddenPage() {
       <ShieldAlert className="mx-auto size-10 text-muted-foreground" aria-hidden />
       <h1 className="mt-4 text-xl font-semibold">You don&apos;t have access to this area</h1>
       <p className="mt-2 text-sm text-muted-foreground">Your role doesn&apos;t include permission for this page. Ask an administrator if you need access.</p>
-      <Button asChild className="mt-6"><Link href="/admin">Back to dashboard</Link></Button>
+      <div className="mt-6 flex justify-center gap-2">
+        <Button asChild><Link href="/admin">Back to dashboard</Link></Button>
+        <Button asChild variant="outline"><Link href="/admin/guide#roles">What can my role do?</Link></Button>
+      </div>
     </div>
   );
 }

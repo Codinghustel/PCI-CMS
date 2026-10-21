@@ -17,10 +17,11 @@ import { pageInputSchema, type PageInput } from "@/lib/validation/content";
 import { validateSections, type Section } from "@/lib/sections/registry";
 import { sanitizeRichText } from "@/lib/sanitize";
 import { isReservedPageSlug } from "@/lib/text";
+import { MAX_PAGE_REVISIONS } from "@/lib/limits";
 import type { Actor } from "@/lib/auth/permissions";
 import type { PublishStatusValue } from "@/lib/content-labels";
 
-const MAX_REVISIONS = 30;
+const MAX_REVISIONS = MAX_PAGE_REVISIONS;
 
 export async function listPages(params: ListParams) {
   const { skip, take, q, page, pageSize } = normalizeList(params);

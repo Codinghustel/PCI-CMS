@@ -11,6 +11,7 @@ import { normalizeList, parseInput, type ListParams } from "@/server/services/he
 import { leadInputSchema, paymentRequestExtraSchema } from "@/lib/validation/leads";
 import { can, type Actor } from "@/lib/auth/permissions";
 import { serverEnv } from "@/lib/env";
+import { CRM_BACKOFF_SECONDS, MAX_CRM_ATTEMPTS, MAX_LEAD_EXPORT_ROWS } from "@/lib/limits";
 import type { LeadFormTypeValue } from "@/lib/content-labels";
 
 // Lead capture pipeline:
@@ -19,8 +20,8 @@ import type { LeadFormTypeValue } from "@/lib/content-labels";
 //  4. deliver to Bitrix24 (after the response, plus a retry job)
 //  5. idempotent retries with backoff; failures visible and re-sendable in the CMS.
 
-const MAX_AUTOMATIC_ATTEMPTS = 6;
-const BACKOFF_SECONDS = [60, 5 * 60, 30 * 60, 2 * 3600, 6 * 3600, 12 * 3600];
+const MAX_AUTOMATIC_ATTEMPTS = MAX_CRM_ATTEMPTS;
+const BACKOFF_SECONDS = CRM_BACKOFF_SECONDS;
 const LEASE_SECONDS = 120;
 const MIN_FILL_MS = 2500;
 
@@ -240,7 +241,7 @@ function csvCell(value: unknown): string {
 
 export async function exportLeadsCsv(actor: Actor, params: { formType?: string; crmStatus?: string; from?: Date; to?: Date; q?: string }) {
   if (!can(actor, "leads.export")) throw new ForbiddenError("You do not have permission to export leads.");
-  const leads = await db.lead.findMany({ where: leadWhere(params, params.q), orderBy: { createdAt: "desc" }, take: 10_000 });
+  const leads = await db.lead.findMany({ where: leadWhere(params, params.q), orderBy: { createdAt: "desc" }, take: MAX_LEAD_EXPORT_ROWS });
   const columns = [
     "createdAt", "correlationId", "formType", "name", "email", "phone", "country", "projectName", "message",
     "pageUrl", "landingPage", "referrer", "utmSource", "utmMedium", "utmCampaign", "utmContent", "utmTerm",

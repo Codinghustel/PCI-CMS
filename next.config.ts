@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { CONTENT_REVALIDATE_SECONDS } from "./src/lib/limits";
 
 const isProd = process.env.NODE_ENV === "production";
 const indexable = process.env.SITE_ENV === "production";
@@ -30,7 +31,7 @@ const nextConfig: NextConfig = {
   cacheLife: {
     // Public CMS content: invalidated on-demand by tags after every edit; the
     // short revalidate window lets scheduled content go live on time.
-    content: { stale: 300, revalidate: 300, expire: 86400 },
+    content: { stale: CONTENT_REVALIDATE_SECONDS, revalidate: CONTENT_REVALIDATE_SECONDS, expire: 86400 },
   },
   images: {
     localPatterns: [{ pathname: "/uploads/**" }],

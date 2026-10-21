@@ -7,12 +7,12 @@ import { RateLimitError, UnauthorizedError, ValidationError } from "@/server/err
 import { signSessionToken, SESSION_ABSOLUTE_SECONDS } from "@/lib/auth/jwt";
 import type { Actor, RoleName } from "@/lib/auth/permissions";
 import { loginSchema } from "@/lib/validation/users";
+import { LOCKOUT_MINUTES, MAX_FAILED_LOGIN_ATTEMPTS } from "@/lib/limits";
 
 // Argon2id parameters (OWASP recommended minimums: m=19 MiB, t=2, p=1).
 const ARGON2_OPTIONS = { memoryCost: 19456, timeCost: 2, parallelism: 1, algorithm: 2 /* Argon2id */ } as const;
 
-const MAX_FAILED_ATTEMPTS = 5;
-const LOCKOUT_MINUTES = 15;
+const MAX_FAILED_ATTEMPTS = MAX_FAILED_LOGIN_ATTEMPTS;
 const GENERIC_LOGIN_ERROR = "Invalid email or password.";
 
 // Precomputed hash used to keep timing similar when the email does not exist.

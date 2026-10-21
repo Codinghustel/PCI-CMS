@@ -9,7 +9,7 @@ export default async function RedirectsPage({ searchParams }: { searchParams: Pr
   const { items, total, page, pageSize } = await listRedirects({ q: sp.q, page: Number(sp.page) || 1, pageSize: 50 });
   return (
     <>
-      <PageHeader title="Redirects" description="301/302 redirects for moved or retired URLs (e.g. old WordPress pages). Redirects apply only when no published content exists at the old URL." />
+      <PageHeader title="Redirects" description="301/302 redirects for moved or retired URLs (e.g. old WordPress pages). A redirect takes priority over any page at the same address and applies within about 15 seconds." />
       <ListToolbar q={sp.q} placeholder="Search paths" />
       <RedirectManager items={items.map((r) => ({ id: r.id, fromPath: r.fromPath, toPath: r.toPath, permanent: r.permanent, note: r.note }))} />
       <Pagination page={page} pageSize={pageSize} total={total} params={{ q: sp.q }} />

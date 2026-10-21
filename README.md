@@ -6,6 +6,9 @@ One Next.js 16 full-stack application: public website, CMS at `/admin`, and REST
 **Stack:** Next.js 16 (App Router, Cache Components) · React 19 · TypeScript · Tailwind CSS 4 ·
 shadcn/ui (Radix) · PostgreSQL · Prisma 7 · JWT sessions (jose) · Argon2id · Zod · Vitest · Playwright.
 
+CMS users have an in-app **User guide** at `/admin/guide` (linked in the sidebar for every role). Its
+content lives in `src/lib/guide.ts` — update it whenever CMS behaviour changes.
+
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for design decisions, security, caching,
 integrations, the API reference and the open items PCI needs to provide.
 

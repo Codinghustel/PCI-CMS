@@ -1,3 +1,5 @@
+import { MAX_CV_MB, MAX_DOCUMENT_MB, MAX_IMAGE_MB } from "@/lib/limits";
+
 // Detects file types from their leading bytes ("magic numbers") rather than
 // trusting the browser-supplied name or MIME type. Only the formats listed here
 // can be uploaded; SVG and HTML are excluded because they can carry scripts.
@@ -22,9 +24,9 @@ export function detectFileType(buf: Uint8Array): DetectedType | null {
   return null;
 }
 
-export const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
-export const MAX_DOCUMENT_BYTES = 30 * 1024 * 1024;
-export const MAX_CV_BYTES = 5 * 1024 * 1024;
+export const MAX_IMAGE_BYTES = MAX_IMAGE_MB * 1024 * 1024;
+export const MAX_DOCUMENT_BYTES = MAX_DOCUMENT_MB * 1024 * 1024;
+export const MAX_CV_BYTES = MAX_CV_MB * 1024 * 1024;
 
 export const EXT_MIME: Record<string, string> = {
   jpg: "image/jpeg",

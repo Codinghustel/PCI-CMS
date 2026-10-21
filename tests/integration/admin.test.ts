@@ -98,3 +98,20 @@ describe("integrations", () => {
     expect(String(fetchMock.mock.calls[0][0])).toContain("crm.lead.fields");
   });
 });
+
+describe("user guide: account changes sign the person out", () => {
+  it("revokes sessions when a role is changed or a password is reset", async () => {
+    const { updateUser, resetUserPassword } = await import("@/server/services/users");
+    const admin = await makeUser("ADMIN");
+    const user = await makeUser("AUTHOR");
+    const signIn = async () => (await verifySessionToken((await login({ email: user.email, password: user.password }, { ipAddress: "10.3.3.3" })).token))!;
+
+    let claims = await signIn();
+    await updateUser(admin, user.id, { name: user.name, role: "EDITOR", isActive: true });
+    expect(await resolveSession(claims.sid, claims.sub)).toBeNull();
+
+    claims = await signIn();
+    await resetUserPassword(admin, user.id, { password: "New-Password-2026" });
+    expect(await resolveSession(claims.sid, claims.sub)).toBeNull();
+  });
+});

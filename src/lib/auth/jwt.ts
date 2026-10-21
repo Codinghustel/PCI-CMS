@@ -7,12 +7,8 @@ import { jwtVerify, SignJWT } from "jose";
 // what makes logout, deactivation and password changes take effect immediately.
 
 export const SESSION_COOKIE = "pci_session";
-/** Idle timeout: the token expires after this long without renewal. */
-export const SESSION_IDLE_SECONDS = 2 * 60 * 60;
-/** Absolute session lifetime regardless of activity. */
-export const SESSION_ABSOLUTE_SECONDS = 12 * 60 * 60;
-/** Renew the token when less than this much idle time remains. */
-export const SESSION_RENEW_THRESHOLD_SECONDS = 60 * 60;
+export { SESSION_ABSOLUTE_SECONDS, SESSION_IDLE_SECONDS, SESSION_RENEW_THRESHOLD_SECONDS } from "@/lib/limits";
+import { SESSION_IDLE_SECONDS } from "@/lib/limits";
 
 const ISSUER = "pci-orbit";
 const AUDIENCE = "pci-orbit-cms";

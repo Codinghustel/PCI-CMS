@@ -190,3 +190,38 @@ test("settings show integrations in a dedicated tab", async ({ page }) => {
   await page.getByRole("button", { name: "Deliver pending leads now" }).click();
   await expect(page.getByText(/Delivery job finished/).first()).toBeVisible();
 });
+
+test("every user can open the role-aware user guide", async ({ page }) => {
+  await signIn(page, "viewer@pci-orbit.local");
+  await page.getByRole("link", { name: "User guide" }).first().click();
+  await expect(page).toHaveURL(/\/admin\/guide$/);
+  await expect(page.getByRole("heading", { name: "User guide", level: 1 })).toBeVisible();
+  await expect(page.getByText(/Viewer \(Leads & Reports\)/).first()).toBeVisible();
+  // Viewers can read leads but not manage users.
+  await expect(page.locator("#leads").getByText("You can do this")).toBeVisible();
+  await expect(page.locator("#users").getByText(/Requires Administrator/)).toBeVisible();
+  await page.getByLabel("Search the guide").fill("brochure");
+  await expect(page.locator("#projects")).toBeVisible();
+  await expect(page.locator("#audit")).toHaveCount(0);
+});
+
+test("the user guide scrolls: independent contents list, jump links and back to top", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 600 });
+  await signIn(page, ADMIN);
+  await page.goto("/admin/guide");
+  const toc = page.locator("#guide-toc");
+  await expect(toc.getByRole("link", { name: "Troubleshooting & FAQs" })).toBeAttached();
+  // The contents list is taller than the window, so it scrolls on its own.
+  expect(await toc.evaluate((el) => getComputedStyle(el).overflowY)).toBe("auto");
+  await expect.poll(() => toc.evaluate((el) => el.scrollHeight > el.clientHeight + 50)).toBe(true);
+
+  await toc.getByRole("link", { name: "Troubleshooting & FAQs" }).click();
+  await expect(page).toHaveURL(/#troubleshooting$/);
+  await expect(page.locator("#troubleshooting")).toBeInViewport();
+  await expect(toc.getByRole("link", { name: "Troubleshooting & FAQs" })).toHaveAttribute("aria-current", "location");
+  // The highlighted entry was scrolled into view inside the contents list.
+  await expect(toc.getByRole("link", { name: "Troubleshooting & FAQs" })).toBeInViewport();
+
+  await page.getByRole("button", { name: "Back to top" }).click();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+});

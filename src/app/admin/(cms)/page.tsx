@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, Building2, CalendarClock, FileText, Inbox, Plus, BadgeCheck } from "lucide-react";
+import { BookOpen, AlertTriangle, Building2, CalendarClock, FileText, Inbox, Plus, BadgeCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/admin/page-header";
@@ -24,13 +24,16 @@ export default async function DashboardPage() {
         title={`Welcome, ${actor.name.split(" ")[0]}`}
         description="Overview of website content, review queue and lead delivery."
         actions={
-          can(actor, "content.writeOwn") ? (
+          <>
+            <Button asChild variant="ghost" size="sm"><Link href="/admin/guide"><BookOpen /> User guide</Link></Button>
+            {can(actor, "content.writeOwn") ? (
             <>
               <Button asChild variant="outline" size="sm"><Link href="/admin/updates/new"><Plus /> Construction update</Link></Button>
               <Button asChild variant="outline" size="sm"><Link href="/admin/pages"><Plus /> Page</Link></Button>
               <Button asChild size="sm"><Link href="/admin/projects/new"><Plus /> Project</Link></Button>
             </>
-          ) : null
+            ) : null}
+          </>
         }
       />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

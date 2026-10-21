@@ -10,8 +10,8 @@ import { normalizeList, parseInput, type ListParams } from "@/server/services/he
 import { detectFileType, MAX_DOCUMENT_BYTES, MAX_IMAGE_BYTES, type DetectedType } from "@/lib/file-types";
 import { can, type Actor } from "@/lib/auth/permissions";
 import { slugify } from "@/lib/text";
+import { MAX_IMAGE_DIMENSION } from "@/lib/limits";
 
-const MAX_IMAGE_DIMENSION = 2560;
 
 export interface UploadInput {
   data: Buffer;

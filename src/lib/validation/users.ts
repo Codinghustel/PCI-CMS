@@ -1,9 +1,10 @@
 import { z } from "zod";
 import { ROLES } from "@/lib/auth/permissions";
+import { PASSWORD_MIN_LENGTH } from "@/lib/limits";
 
 export const passwordSchema = z
   .string()
-  .min(12, "Password must be at least 12 characters")
+  .min(PASSWORD_MIN_LENGTH, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`)
   .max(128, "Password must be at most 128 characters")
   .refine((v) => /[a-z]/.test(v) && /[A-Z]/.test(v) && /\d/.test(v), "Use upper- and lower-case letters and at least one number");
 
