@@ -29,6 +29,9 @@ export const apiCreateUserSchema = createUserSchema.extend({
   role: z.enum(API_USER_ROLES, `Role must be one of: ${API_USER_ROLES.join(", ")}`),
 });
 
+/** Query for GET /api/v1/users?email= — same email normalisation as create/login. */
+export const lookupUserSchema = z.object({ email });
+
 export const updateUserSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
   role: z.enum(ROLES),
