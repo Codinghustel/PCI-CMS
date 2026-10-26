@@ -22,6 +22,13 @@ export const createUserSchema = z.object({
   password: passwordSchema,
 });
 
+/** Roles an external app may assign via POST /api/v1/users — never ADMIN. */
+export const API_USER_ROLES = ROLES.filter((r) => r !== "ADMIN");
+
+export const apiCreateUserSchema = createUserSchema.extend({
+  role: z.enum(API_USER_ROLES, `Role must be one of: ${API_USER_ROLES.join(", ")}`),
+});
+
 export const updateUserSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
   role: z.enum(ROLES),

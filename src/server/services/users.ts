@@ -5,7 +5,8 @@ import { hashPassword, revokeAllSessions, verifyPassword } from "@/server/servic
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError, mapPrismaError } from "@/server/errors";
 import { normalizeList, parseInput, type ListParams } from "@/server/services/helpers";
 import { can, type Actor } from "@/lib/auth/permissions";
-import { changeOwnPasswordSchema, createUserSchema, resetPasswordSchema, updateUserSchema } from "@/lib/validation/users";
+import { enforceRateLimit } from "@/server/services/rate-limit";
+import { apiCreateUserSchema, changeOwnPasswordSchema, createUserSchema, resetPasswordSchema, updateUserSchema } from "@/lib/validation/users";
 
 const userSelect = {
   id: true,
@@ -52,6 +53,32 @@ export async function createUser(actor: Actor, input: unknown) {
       select: userSelect,
     });
     await audit(actor, { action: "user.create", entityType: "User", entityId: user.id, summary: `Created user ${user.email} (${user.role})` });
+    return user;
+  } catch (e) {
+    mapPrismaError(e, { email: "email address" });
+  }
+}
+
+/**
+ * Creates a user on behalf of an external app (POST /api/v1/users). The caller
+ * is authenticated by API key, not a session, so there is no actor: the audit
+ * entry is recorded as a system action. ADMIN accounts cannot be created here.
+ */
+export async function createUserFromApi(input: unknown, meta: { ipAddress: string }) {
+  await enforceRateLimit(`users-api:${meta.ipAddress}`, 30, 15 * 60);
+  const data = parseInput(apiCreateUserSchema, input);
+  try {
+    const user = await db.user.create({
+      data: { name: data.name, email: data.email, role: data.role, passwordHash: await hashPassword(data.password) },
+      select: userSelect,
+    });
+    await audit(null, {
+      action: "user.create",
+      entityType: "User",
+      entityId: user.id,
+      summary: `Created user ${user.email} (${user.role}) via external API`,
+      metadata: { source: "api", ipAddress: meta.ipAddress },
+    });
     return user;
   } catch (e) {
     mapPrismaError(e, { email: "email address" });
