@@ -18,7 +18,8 @@ const serverSchema = z.object({
   PAYMENT_SERVICE_URL: z.url().optional().or(z.literal("")),
   PAYMENT_SERVICE_SECRET: z.string().optional().default(""),
   CRON_SECRET: z.string().optional().default(""),
-  // Bearer key for POST /api/v1/users (external apps creating CMS users).
+  // Bearer key for /api/v1/users and /api/v1/roles (external apps creating CMS
+  // users and changing role permissions).
   // Empty disables the endpoint.
   USERS_API_KEY: z.string().optional().default(""),
 });

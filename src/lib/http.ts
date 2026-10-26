@@ -1,4 +1,5 @@
 import "server-only";
+import crypto from "node:crypto";
 import { unstable_rethrow } from "next/navigation";
 import { AppError, RateLimitError } from "@/server/errors";
 
@@ -38,6 +39,20 @@ export function isSameOrigin(request: Request): boolean {
 
 export function forbiddenOrigin(): Response {
   return Response.json({ error: { code: "FORBIDDEN_ORIGIN" }, message: "Cross-site request rejected." }, { status: 403 });
+}
+
+/**
+ * Server-to-server auth for the external API: "Authorization: Bearer <key>",
+ * compared in constant time. A key shorter than 32 characters (or unset)
+ * disables the endpoint.
+ */
+export function hasBearerKey(request: Request, key: string): boolean {
+  const provided = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+  return key.length >= 32 && provided.length === key.length && crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(key));
+}
+
+export function unauthorized(): Response {
+  return Response.json({ error: { code: "UNAUTHORIZED" }, message: "Unauthorized" }, { status: 401 });
 }
 
 export function clientIp(request: Request): string {

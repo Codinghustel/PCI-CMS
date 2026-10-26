@@ -1,6 +1,5 @@
-import crypto from "node:crypto";
 import { createUserFromApi } from "@/server/services/users";
-import { clientIp, jsonError, readJson } from "@/lib/http";
+import { clientIp, hasBearerKey, jsonError, readJson, unauthorized } from "@/lib/http";
 import { serverEnv } from "@/lib/env";
 
 /**
@@ -11,14 +10,7 @@ import { serverEnv } from "@/lib/env";
  * 201 → { data: { id, name, email, role, isActive, createdAt } }
  */
 export async function POST(request: Request) {
-  const key = serverEnv().USERS_API_KEY;
-  const provided = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
-  const ok =
-    key.length >= 32 &&
-    provided.length === key.length &&
-    crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(key));
-  if (!ok) return Response.json({ error: { code: "UNAUTHORIZED" }, message: "Unauthorized" }, { status: 401 });
-
+  if (!hasBearerKey(request, serverEnv().USERS_API_KEY)) return unauthorized();
   try {
     const user = await createUserFromApi(await readJson(request, 4096), { ipAddress: clientIp(request) });
     return Response.json(
