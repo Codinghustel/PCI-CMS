@@ -3,19 +3,22 @@ import { CONTENT_REVALIDATE_SECONDS } from "./src/lib/limits";
 
 const isProd = process.env.NODE_ENV === "production";
 const indexable = process.env.SITE_ENV === "production";
+// Sites allowed to show the CMS in a frame besides itself: PCI Orbit opens it as an embedded module.
+// Space-separated origins; FRAME_ANCESTORS="" allows none.
+const frameAncestors = (process.env.FRAME_ANCESTORS ?? "https://apps.premierchoiceint.online").trim();
 
 // Security headers applied to every response. A full script-src CSP would need
 // per-request nonces (forcing dynamic rendering of every page), so the policy
 // focuses on the high-value directives that do not: framing, plugins, base URI
-// and form targets.
+// and form targets. X-Frame-Options can't list other sites, so framing is
+// controlled by frame-ancestors alone.
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
-  { key: "X-Frame-Options", value: "SAMEORIGIN" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
   {
     key: "Content-Security-Policy",
-    value: "frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'",
+    value: `frame-ancestors 'self'${frameAncestors ? ` ${frameAncestors}` : ""}; object-src 'none'; base-uri 'self'; form-action 'self'`,
   },
   ...(isProd ? [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" }] : []),
   // Staging and development must never be indexed.
