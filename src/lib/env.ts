@@ -22,6 +22,10 @@ const serverSchema = z.object({
   // users and changing role permissions).
   // Empty disables the endpoint.
   USERS_API_KEY: z.string().optional().default(""),
+  // PCI Orbit single sign-on. The app secret is USERS_API_KEY (shared with Orbit's CMS_API_KEY).
+  ORBIT_URL: z.url().default("https://apps.premierchoiceint.online"),
+  // Emergency switch: "true" re-enables the email/password form next to Orbit sign-in.
+  ALLOW_PASSWORD_LOGIN: z.string().optional().default("false").transform((v) => v.trim().toLowerCase() === "true"),
 });
 
 export type ServerEnv = z.infer<typeof serverSchema>;
