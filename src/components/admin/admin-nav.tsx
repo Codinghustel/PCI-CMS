@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   BookOpen,
@@ -79,6 +80,7 @@ const NAV: { heading: string; items: { href: string; label: string; icon: React.
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const { can, actor } = useAdmin();
+  const [signingOut, setSigningOut] = useState(false);
   return (
     <div className="flex h-full flex-col">
       <div className="border-b px-5 py-5">
@@ -126,11 +128,28 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
             <span className="block truncate text-xs text-muted-foreground">{ROLE_LABELS[actor.role]}</span>
           </span>
         </Link>
-        <form action={logoutAction}>
-          <button type="submit" className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-start hover:bg-sidebar-accent/60">
-            <LogOut className="size-4" /> Sign out
-          </button>
-        </form>
+        <button
+          type="button"
+          disabled={signingOut}
+          onClick={async () => {
+            setSigningOut(true);
+            try {
+              const { redirectTo } = await logoutAction();
+              // Navigate the TOP window (the CMS may be framed by PCI Orbit); a form redirect to another
+              // origin would be blocked by the CSP's form-action 'self'.
+              try {
+                window.top!.location.href = redirectTo;
+              } catch {
+                window.location.href = redirectTo;
+              }
+            } catch {
+              setSigningOut(false);
+            }
+          }}
+          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-start hover:bg-sidebar-accent/60 disabled:opacity-60"
+        >
+          <LogOut className="size-4" /> Sign out
+        </button>
       </div>
     </div>
   );

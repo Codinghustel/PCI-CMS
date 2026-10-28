@@ -8,6 +8,7 @@ export const E2E_PASSWORD = "E2e-Password-2026";
 
 const env = {
   DATABASE_URL,
+  ALLOW_PASSWORD_LOGIN: "true",
   AUTH_SECRET: "e2e-secret-0123456789abcdef0123456789abcdef",
   NEXT_PUBLIC_SITE_URL: `http://localhost:${PORT}`,
   NEXT_DIST_DIR: ".next-e2e",
