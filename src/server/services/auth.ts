@@ -148,7 +148,7 @@ const failedChecks = new Map<string, number>();
  * session when Orbit says it is over, tolerates an unreachable Orbit for 5 minutes.
  */
 async function orbitSessionStillValid(session: { id: string; orbitSid: string | null; orbitCheckedAt: Date | null }): Promise<boolean> {
-  if (!session.orbitSid) return passwordLoginAllowed(); // password sessions only exist in emergency mode
+  if (!session.orbitSid) return passwordLoginAllowed(); // password sessions are independent of Orbit; valid while password sign-in is enabled
   if (!orbitCheckDue(session.orbitCheckedAt)) return true;
   const sid = session.orbitSid;
   // After a failed attempt don't hammer an unreachable Orbit (10 s timeout) on every request.

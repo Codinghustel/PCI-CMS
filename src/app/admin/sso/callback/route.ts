@@ -12,6 +12,7 @@ import { sessionCookieOptions, SESSION_COOKIE } from "@/lib/auth/jwt";
 import { requestMeta } from "@/lib/auth/session";
 import { exchangeCode, ssoConfigured } from "@/server/services/orbit-sso";
 import { loginWithOrbit } from "@/server/services/auth";
+import { VIA_ORBIT_COOKIE, VIA_ORBIT_MAX_AGE_SECONDS } from "@/lib/auth/login-mode";
 import { ssoErrorHtml } from "@/lib/sso-page";
 
 /** GET /admin/sso/callback — Orbit sends the browser back here with ?code=…&state=… (contract section 1). */
@@ -22,6 +23,13 @@ function page(status: number, title: string, message: string, retry = true) {
   const res = new NextResponse(ssoErrorHtml({ title, message, links }), {
     status,
     headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
+  });
+  res.cookies.set(VIA_ORBIT_COOKIE, "1", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/admin",
+    maxAge: VIA_ORBIT_MAX_AGE_SECONDS,
   });
   res.cookies.delete({ name: SSO_STATE_COOKIE, path: "/admin/sso" });
   return res;

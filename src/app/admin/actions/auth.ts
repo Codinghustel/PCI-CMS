@@ -1,6 +1,8 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { VIA_ORBIT_COOKIE } from "@/lib/auth/login-mode";
 import { getSessionOrbitSid, login, logout } from "@/server/services/auth";
 import { changeOwnPassword } from "@/server/services/users";
 import { logoutUrl, safeNextPath } from "@/lib/auth/orbit-sso";
@@ -17,6 +19,7 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
       await requestMeta()
     );
     await setSessionCookie(token, expiresAt);
+    (await cookies()).delete({ name: VIA_ORBIT_COOKIE, path: "/admin" });
   });
   if (!result?.ok) return result;
   // Only allow internal CMS paths as the post-login destination.

@@ -6,6 +6,7 @@ import {
   signSessionToken,
   verifySessionToken,
 } from "@/lib/auth/jwt";
+import { VIA_ORBIT_COOKIE, parsePasswordLoginFlag, signedOutDestination } from "@/lib/auth/login-mode";
 import { decide, getRoutingIndex } from "@/server/routing-index";
 
 // Runs before every page request:
@@ -48,7 +49,7 @@ async function adminProxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   // The PCI Orbit sign-in start and callback run without a session.
   if (pathname.startsWith("/admin/sso/")) return NextResponse.next();
-  const passwordLogin = process.env.ALLOW_PASSWORD_LOGIN?.trim().toLowerCase() === "true";
+  const passwordLogin = parsePasswordLoginFlag(process.env.ALLOW_PASSWORD_LOGIN);
   const isLogin = pathname === "/admin/login";
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   const claims = await verifySessionToken(token);
@@ -56,8 +57,8 @@ async function adminProxy(request: NextRequest) {
   if (!claims) {
     if (isLogin && passwordLogin) return NextResponse.next();
     const url = request.nextUrl.clone();
-    // Signed out: start PCI Orbit sign-in (the password form only exists in emergency mode).
-    url.pathname = passwordLogin ? "/admin/login" : "/admin/sso/start";
+    // Signed out: the password form, unless Orbit-only mode is on or the person last signed in through Orbit.
+    url.pathname = signedOutDestination({ passwordLogin, viaOrbit: request.cookies.get(VIA_ORBIT_COOKIE)?.value === "1" });
     const wanted = isLogin ? request.nextUrl.searchParams.get("next") : pathname !== "/admin" ? pathname : null;
     url.search = wanted ? `?next=${encodeURIComponent(wanted)}` : "";
     const res = NextResponse.redirect(url);
