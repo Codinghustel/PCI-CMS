@@ -12,7 +12,7 @@ import {
   HelpCircle,
   Images,
   Inbox,
-  KeyRound,
+  // KeyRound,
   LogOut,
   MapPin,
   Menu,
@@ -23,7 +23,7 @@ import {
   Shield,
   Signpost,
   UserCog,
-  Users,
+  // Users,
   Briefcase,
   ExternalLink,
 } from "lucide-react";
@@ -69,8 +69,9 @@ const NAV: { heading: string; items: { href: string; label: string; icon: React.
     items: [
       { href: "/admin/leads", label: "Leads", icon: Inbox, permission: "leads.read" },
       { href: "/admin/applications", label: "Job applications", icon: ClipboardList, permission: "applications.read" },
-      { href: "/admin/users", label: "Users", icon: Users, permission: "users.manage" },
-      { href: "/admin/roles", label: "Roles & permissions", icon: KeyRound, permission: "users.manage" },
+      // Hidden from the sidebar; the pages still work by direct URL. Uncomment (and the Users/KeyRound imports) to restore.
+      // { href: "/admin/users", label: "Users", icon: Users, permission: "users.manage" },
+      // { href: "/admin/roles", label: "Roles & permissions", icon: KeyRound, permission: "users.manage" },
       { href: "/admin/audit", label: "Audit log", icon: Shield, permission: "audit.read" },
     ],
   },
