@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { POST } from "@/app/api/v1/users/route";
+import { GET, POST } from "@/app/api/v1/users/route";
 import { db } from "@/server/db";
 import { login } from "@/server/services/auth";
 import { resetServerEnvCache } from "@/lib/env";
-import { resetDb } from "../support/db";
+import { makeUser, resetDb } from "../support/db";
 
 const KEY = "users-api-test-key-0123456789abcdef0123456789";
 
@@ -69,5 +69,76 @@ describe("POST /api/v1/users", () => {
     const dup = await call({ ...valid, email: "ALI.KHAN@example.com" });
     expect(dup.status).toBe(409);
     expect((await dup.json()).error.code).toBe("CONFLICT");
+  });
+});
+
+function lookup(email: string | null, auth: string | null = `Bearer ${KEY}`, ip = "203.0.113.30") {
+  const headers: Record<string, string> = { "x-forwarded-for": ip };
+  if (auth) headers.authorization = auth;
+  const qs = email === null ? "" : `?email=${encodeURIComponent(email)}`;
+  return GET(new Request(`http://localhost/api/v1/users${qs}`, { method: "GET", headers }));
+}
+
+describe("GET /api/v1/users?email=", () => {
+  it("rejects missing, wrong or unconfigured keys", async () => {
+    await makeUser("EDITOR", undefined, { email: "found@example.com" });
+    expect((await lookup("found@example.com", null)).status).toBe(401);
+    expect((await lookup("found@example.com", "Bearer wrong-key")).status).toBe(401);
+    process.env.USERS_API_KEY = "";
+    resetServerEnvCache();
+    expect((await lookup("found@example.com")).status).toBe(401);
+  });
+
+  it("validates the email query parameter", async () => {
+    for (const bad of [null, "", "not-an-email"]) {
+      const res = await lookup(bad);
+      expect(res.status).toBe(422);
+      const body = await res.json();
+      expect(body.error.code).toBe("VALIDATION_ERROR");
+      expect(body.fieldErrors.email).toBeTruthy();
+    }
+  });
+
+  it("returns 404 for an unknown email", async () => {
+    const res = await lookup("nobody@example.com");
+    expect(res.status).toBe(404);
+    const body = await res.json();
+    expect(body.error.code).toBe("NOT_FOUND");
+    expect(body.message).toBe("No CMS account uses nobody@example.com.");
+  });
+
+  it("returns only email, name, role and active status — never secrets", async () => {
+    const u = await makeUser("EDITOR", undefined, { email: "found@example.com" });
+    const res = await lookup("found@example.com");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    const { data } = await res.json();
+    expect(data).toEqual({ email: "found@example.com", name: u.name, role: "EDITOR", isActive: true });
+    expect(Object.keys(data).sort()).toEqual(["email", "isActive", "name", "role"]);
+  });
+
+  it("reports deactivated accounts and includes administrators", async () => {
+    await makeUser("VIEWER", undefined, { email: "off@example.com", isActive: false });
+    await makeUser("ADMIN", undefined, { email: "boss@example.com" });
+    expect((await (await lookup("off@example.com")).json()).data).toMatchObject({ role: "VIEWER", isActive: false });
+    expect((await (await lookup("boss@example.com")).json()).data).toMatchObject({ role: "ADMIN", isActive: true });
+  });
+
+  it("matches the email case-insensitively and ignores surrounding spaces", async () => {
+    await makeUser("AUTHOR", undefined, { email: "mixed.case@example.com" });
+    const res = await lookup("  Mixed.CASE@Example.com ");
+    expect(res.status).toBe(200);
+    expect((await res.json()).data.email).toBe("mixed.case@example.com");
+  });
+
+  it("does not write an audit entry and shares the users-api rate limit", async () => {
+    await makeUser("EDITOR", undefined, { email: "found@example.com" });
+    const before = await db.auditLog.count();
+    for (let i = 0; i < 30; i++) expect((await lookup("found@example.com", undefined, "203.0.113.99")).status).toBe(200);
+    expect(await db.auditLog.count()).toBe(before);
+    const limited = await lookup("found@example.com", undefined, "203.0.113.99");
+    expect(limited.status).toBe(429);
+    // The POST endpoint shares the same per-IP bucket.
+    expect((await call(valid, undefined, "203.0.113.99")).status).toBe(429);
   });
 });

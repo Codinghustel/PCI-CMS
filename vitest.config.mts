@@ -40,6 +40,7 @@ export default defineConfig({
             UPLOAD_DIR: path.join(os.tmpdir(), "pci-orbit-test-uploads"),
             PRIVATE_UPLOAD_DIR: path.join(os.tmpdir(), "pci-orbit-test-private"),
             BITRIX24_WEBHOOK_URL: "",
+            ALLOW_PASSWORD_LOGIN: "true",
           },
         },
       },

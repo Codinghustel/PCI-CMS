@@ -6,7 +6,7 @@ import { ConflictError, ForbiddenError, NotFoundError, ValidationError, mapPrism
 import { normalizeList, parseInput, type ListParams } from "@/server/services/helpers";
 import { can, type Actor } from "@/lib/auth/permissions";
 import { enforceRateLimit } from "@/server/services/rate-limit";
-import { apiCreateUserSchema, changeOwnPasswordSchema, createUserSchema, resetPasswordSchema, updateUserSchema } from "@/lib/validation/users";
+import { apiCreateUserSchema, changeOwnPasswordSchema, createUserSchema, lookupUserSchema, resetPasswordSchema, updateUserSchema } from "@/lib/validation/users";
 
 const userSelect = {
   id: true,
@@ -83,6 +83,19 @@ export async function createUserFromApi(input: unknown, meta: { ipAddress: strin
   } catch (e) {
     mapPrismaError(e, { email: "email address" });
   }
+}
+
+/**
+ * Read-only lookup for an external app (GET /api/v1/users?email=). Returns only
+ * the fields the caller needs; ADMIN accounts are included. Reads are not
+ * audited (same as GET /api/v1/roles).
+ */
+export async function findUserByEmailFromApi(input: unknown, meta: { ipAddress: string }) {
+  await enforceRateLimit(`users-api:${meta.ipAddress}`, 30, 15 * 60);
+  const { email } = parseInput(lookupUserSchema, input);
+  const user = await db.user.findUnique({ where: { email }, select: { email: true, name: true, role: true, isActive: true } });
+  if (!user) throw new NotFoundError(`No CMS account uses ${email}.`);
+  return user;
 }
 
 /**

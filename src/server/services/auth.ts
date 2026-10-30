@@ -1,5 +1,8 @@
 import { hash, verify } from "@node-rs/argon2";
 import { db } from "@/server/db";
+import { serverEnv } from "@/lib/env";
+import { checkOrbitSession } from "@/server/services/orbit-sso";
+import { orbitCheckDue, withinOutageGrace } from "@/lib/auth/orbit-sso";
 import { audit } from "@/server/services/audit";
 import { consumeRateLimit, resetRateLimit } from "@/server/services/rate-limit";
 import { rolePermissions } from "@/server/services/roles";
@@ -35,7 +38,14 @@ export interface LoginMeta {
   userAgent?: string;
 }
 
+export const PASSWORD_LOGIN_DISABLED = "Password sign-in is turned off. Sign in with PCI Orbit instead.";
+
+export function passwordLoginAllowed(): boolean {
+  return serverEnv().ALLOW_PASSWORD_LOGIN;
+}
+
 export async function login(input: unknown, meta: LoginMeta) {
+  if (!passwordLoginAllowed()) throw new UnauthorizedError(PASSWORD_LOGIN_DISABLED);
   const parsed = loginSchema.safeParse(input);
   if (!parsed.success) throw new ValidationError(GENERIC_LOGIN_ERROR);
   const { email, password } = parsed.data;
@@ -84,6 +94,18 @@ export async function login(input: unknown, meta: LoginMeta) {
     throw new UnauthorizedError(GENERIC_LOGIN_ERROR);
   }
 
+  const { token, expiresAt } = await startSession(user, meta, { summary: "Signed in" });
+  await resetRateLimit(accountKey);
+
+  return { token, expiresAt, user: toActor(user) };
+}
+
+/** Creates the Session row (plus lastLoginAt and the audit entry) and its signed cookie token. */
+async function startSession(
+  user: { id: string },
+  meta: LoginMeta,
+  opts: { summary: string; orbitSid?: string }
+) {
   const absoluteExpiry = Math.floor(Date.now() / 1000) + SESSION_ABSOLUTE_SECONDS;
   const session = await db.$transaction(async (tx) => {
     await tx.user.update({
@@ -96,15 +118,69 @@ export async function login(input: unknown, meta: LoginMeta) {
         expiresAt: new Date(absoluteExpiry * 1000),
         ipAddress: meta.ipAddress?.slice(0, 64),
         userAgent: meta.userAgent?.slice(0, 300),
+        ...(opts.orbitSid ? { orbitSid: opts.orbitSid, orbitCheckedAt: new Date() } : {}),
       },
     });
-    await audit({ id: user.id }, { action: "auth.login", entityType: "User", entityId: user.id, summary: "Signed in" }, tx);
+    await audit({ id: user.id }, { action: "auth.login", entityType: "User", entityId: user.id, summary: opts.summary }, tx);
     return created;
   });
-  await resetRateLimit(accountKey);
+  return signSessionToken({ userId: user.id, sessionId: session.id, absoluteExpiry });
+}
 
-  const { token, expiresAt } = await signSessionToken({ userId: user.id, sessionId: session.id, absoluteExpiry });
+/**
+ * Starts a CMS session for a person Orbit has authenticated. Returns null when there is no active
+ * CMS account for the email (accounts are only created through the Orbit users API).
+ */
+export async function loginWithOrbit(identity: { email: string; sid: string }, meta: LoginMeta) {
+  const user = await db.user.findFirst({ where: { email: { equals: identity.email, mode: "insensitive" } } });
+  if (!user || !user.isActive) return null;
+  const { token, expiresAt } = await startSession(user, meta, { summary: "Signed in with PCI Orbit", orbitSid: identity.sid });
   return { token, expiresAt, user: toActor(user) };
+}
+
+// One in-flight Orbit check per sid, so parallel requests of one page load share a single call.
+const inflightChecks = new Map<string, Promise<"active" | "ended" | "unreachable">>();
+
+const failedChecks = new Map<string, number>();
+
+/**
+ * Keeps the session tied to Orbit (contract section 2): asks Orbit at most every 60 s, ends the
+ * session when Orbit says it is over, tolerates an unreachable Orbit for 5 minutes.
+ */
+async function orbitSessionStillValid(session: { id: string; orbitSid: string | null; orbitCheckedAt: Date | null }): Promise<boolean> {
+  if (!session.orbitSid) return passwordLoginAllowed(); // password sessions are independent of Orbit; valid while password sign-in is enabled
+  if (!orbitCheckDue(session.orbitCheckedAt)) return true;
+  const sid = session.orbitSid;
+  // After a failed attempt don't hammer an unreachable Orbit (10 s timeout) on every request.
+  const lastFailure = failedChecks.get(sid);
+  if (lastFailure && !orbitCheckDue(new Date(lastFailure))) return withinOutageGrace(session.orbitCheckedAt);
+  let pending = inflightChecks.get(sid);
+  if (!pending) {
+    pending = checkOrbitSession(sid).finally(() => inflightChecks.delete(sid));
+    inflightChecks.set(sid, pending);
+  }
+  const result = await pending;
+  if (result === "unreachable") failedChecks.set(sid, Date.now());
+  else failedChecks.delete(sid);
+  if (result === "active") {
+    await db.session.updateMany({ where: { id: session.id, revokedAt: null }, data: { orbitCheckedAt: new Date() } });
+    return true;
+  }
+  if (result === "ended") {
+    await revokeOrbitSessions(sid);
+    return false;
+  }
+  return withinOutageGrace(session.orbitCheckedAt);
+}
+
+export async function getSessionOrbitSid(sessionId: string): Promise<string | null> {
+  return (await db.session.findUnique({ where: { id: sessionId }, select: { orbitSid: true } }))?.orbitSid ?? null;
+}
+
+/** Ends every CMS session tied to an Orbit session. Returns how many were ended. */
+export async function revokeOrbitSessions(orbitSid: string) {
+  const { count } = await db.session.updateMany({ where: { orbitSid, revokedAt: null }, data: { revokedAt: new Date() } });
+  return count;
 }
 
 /** Validates a session id from a verified token against the database. */
@@ -116,6 +192,7 @@ export async function resolveSession(sessionId: string, userId: string): Promise
   if (!session || session.userId !== userId) return null;
   if (session.revokedAt || session.expiresAt <= new Date()) return null;
   if (!session.user.isActive) return null;
+  if (!(await orbitSessionStillValid(session))) return null;
   const actor = toActor(session.user);
   // Effective (possibly customised) role permissions, resolved on every request.
   return { ...actor, permissions: await rolePermissions(actor.role) };

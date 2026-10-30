@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parsePasswordLoginFlag } from "@/lib/auth/login-mode";
 
 // Server-side configuration. Parsed lazily so that importing a module never
 // crashes a build step that does not need a particular variable.
@@ -22,6 +23,10 @@ const serverSchema = z.object({
   // users and changing role permissions).
   // Empty disables the endpoint.
   USERS_API_KEY: z.string().optional().default(""),
+  // PCI Orbit single sign-on. The app secret is USERS_API_KEY (shared with Orbit's CMS_API_KEY).
+  ORBIT_URL: z.url().default("https://apps.premierchoiceint.online"),
+  // Email/password sign-in is available by default; "false" makes PCI Orbit the only way in.
+  ALLOW_PASSWORD_LOGIN: z.string().optional().transform((v) => parsePasswordLoginFlag(v)),
 });
 
 export type ServerEnv = z.infer<typeof serverSchema>;

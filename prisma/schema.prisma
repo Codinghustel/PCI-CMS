@@ -61,9 +61,14 @@ model Session {
   revokedAt DateTime?
   ipAddress String?
   userAgent String?
+  // PCI Orbit single sign-on: the Orbit session this session is tied to (null for password sessions)
+  // and when Orbit last confirmed it was still alive.
+  orbitSid       String?
+  orbitCheckedAt DateTime?
 
   @@index([userId])
   @@index([expiresAt])
+  @@index([orbitSid])
 }
 
 model AuditLog {

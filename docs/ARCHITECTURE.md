@@ -130,6 +130,8 @@ All JSON errors: `{ "error": { "code" }, "message", "fieldErrors"? }` with prope
 | `POST /api/payments/start` | Same-origin | `{ bookingReference }` → `{ redirectUrl }` (Payment Service mode) |
 | `POST /api/careers/apply` | Same-origin | Multipart application with PDF CV |
 | `GET /api/v1/projects?category=&status=` | Public | Published projects (approved prices only) |
+| `POST /api/v1/users` | `Bearer USERS_API_KEY` | Create a CMS user (never ADMIN) → 201 `{ data: { id, name, email, role, isActive, createdAt } }` |
+| `GET /api/v1/users?email=` | `Bearer USERS_API_KEY` | Look up one CMS account (case-insensitive, ADMIN included) → 200 `{ data: { email, name, role, isActive } }`; 404 `NOT_FOUND`; 422 on a bad email |
 | `GET /api/health` | Public | Liveness + DB check |
 | `POST /api/admin/media` · `POST /api/admin/media/:id/replace` | CMS session | Upload / replace (same URL) |
 | `GET /api/admin/leads/export` | `leads.export` | CSV export |
